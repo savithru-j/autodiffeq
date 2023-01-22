@@ -1,6 +1,5 @@
 # The path where cmake config files are installed
 set(LIB_INSTALL_CONFIGDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${LIB_NAME})
-MESSAGE("LIB_INSTALL_CONFIGDIR: " ${LIB_INSTALL_CONFIGDIR})
 
 install(EXPORT autodiffeqTargets
     FILE autodiffeqTargets.cmake

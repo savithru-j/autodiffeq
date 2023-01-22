@@ -17,7 +17,7 @@ ExternalProject_Add(
   )
 
 ExternalProject_Get_Property(googletest source_dir)
-set(GTEST_INCLUDE_DIR ${source_dir}/include CACHE PATH "GTest include directory")
+set(GTEST_INCLUDE_DIR ${source_dir}/googletest/include CACHE PATH "GTest include directory")
 
 ExternalProject_Get_Property(googletest binary_dir)
 

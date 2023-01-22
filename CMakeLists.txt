@@ -24,7 +24,7 @@ include(GNUInstallDirs)
 #Enable testing for the project
 enable_testing()
 
-# Configure google-test as a downloadable library.
+# Configure google-test an external library.
 ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/externals)
 INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/externals)
 
@@ -35,8 +35,6 @@ INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
 
 INCLUDE( cmake/CompileFlags.cmake )
 #INCLUDE( CMakeInclude/Dependencies.cmake )
-
-MESSAGE("External: " ${GTEST_INCLUDE_DIR})
 
 SET(LIBS 
     # libNumerics
