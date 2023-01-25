@@ -7,7 +7,7 @@ IF( CMAKE_COMPILER_IS_GNUCXX )
 ELSEIF( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   SET( CLANG_MIN_VERSION 3.4 )
   IF (${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS ${CLANG_MIN_VERSION})
-    MESSAGE(FATAL_ERROR "This library relies on C++11 standards that only exist in clang version ${CLANG_MIN_VERSION} or higher. Current version is ${CMAKE_CXX_COMPILER_VERSION}.")
+    MESSAGE(FATAL_ERROR "This library relies on C++14 standards that only exist in clang version ${CLANG_MIN_VERSION} or higher. Current version is ${CMAKE_CXX_COMPILER_VERSION}.")
   ENDIF()
 ENDIF()
 
@@ -65,25 +65,84 @@ IF( NOT DEFINED CMAKE_FLAGS_INIT )
 
     SET( CMAKE_CXX_FLAGS_DEBUG "-g -ftrapv -fbounds-check" CACHE STRING "C++ Debug Flags" FORCE )
     IF( NOT CYGWIN )
-        SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0" CACHE STRING "C++ Debug Flags" FORCE )
+      SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0" CACHE STRING "C++ Debug Flags" FORCE )
     ELSE()
-        SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og" CACHE STRING "C++ Debug Flags" FORCE )
+      SET( CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Og" CACHE STRING "C++ Debug Flags" FORCE )
     ENDIF()
     
     SET( CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -funroll-loops" CACHE STRING "C++ Release Flags" FORCE )
     SET( CMAKE_CXX_FLAGS_MEMCHECK "-g -Os -fsanitize=address -fno-omit-frame-pointer" CACHE STRING "C++ Compiler Memory Check Flags" FORCE )
-    SET( CMAKE_CXX_FLAGS_VECTORIZE "-O3 -ftree-vectorizer-verbose=7" CACHE STRING "C++ Release Flags" FORCE )
 
     SET( CMAKE_C_FLAGS_DEBUG "-g -O0 -ftrapv -fbounds-check" CACHE STRING "C Debug Flags" FORCE )
     SET( CMAKE_C_FLAGS_RELEASE "-O3 -funroll-loops" CACHE STRING "C Release Flags" FORCE )
-
-    SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,--no-undefined" CACHE STRING "Flags used by the linker during the creation of dll's." FORCE )
+    SET( CMAKE_C_FLAGS_MEMCHECK "-g -Os -fsanitize=address -fno-omit-frame-pointer" CACHE STRING "C Compiler Memory Check Flags" FORCE )
 
     SET( GNU_NO_INLINE_FLAGS "-DALWAYS_INLINE=inline -fno-inline -fno-inline-functions -fno-inline-small-functions -fno-inline-functions-called-once -fno-default-inline -fno-implicit-inline-templates" )
 
-    SET( CMAKE_EXE_LINKER_FLAGS_MEMCHECK "-fuse-ld=gold -Wl,--disable-new-dtags -Wl,--allow-shlib-undefined" CACHE STRING "Executable Link Flags For Memcheck" FORCE )
-  ELSE()
-    MESSAGE(FATAL_ERROR "Only works for GNU compilers")
+    IF( NOT CYGWIN AND NOT MINGW )
+      SET( CMAKE_EXE_LINKER_FLAGS "-Wl,--disable-new-dtags" CACHE STRING "Executable Link Flags" FORCE )
+    ENDIF()
+    SET( CMAKE_EXE_LINKER_FLAGS_MEMCHECK "-fsanitize=address -fuse-ld=gold -Wl,--disable-new-dtags -Wl,--allow-shlib-undefined" CACHE STRING "Executable Link Flags For Memcheck" FORCE )
+
+    SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,--disable-new-dtags -Wl,--no-undefined" CACHE STRING "Shared Library Link Flags" FORCE )
+    SET( CMAKE_SHARED_LINKER_FLAGS_MEMCHECK "${CMAKE_EXE_LINKER_FLAGS_MEMCHECK}" CACHE STRING "Shared Library Link Flags For Memcheck" FORCE )
+
+  ELSEIF( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel" )
+    # -Wstrict-aliasing creates all kinds of crazy warnings for intel
+    SET( INTEL_WARINNGS "-wd3415" )
+    SET( INTEL_INLINE "-finline-functions" )
+    SET( CMAKE_CXX_FLAGS "-Wall -std=c++14 -fPIC -pthread -fstrict-aliasing -ansi-alias-check ${INTEL_WARINNGS}" CACHE STRING "C++ Flags" FORCE )
+    SET( CMAKE_C_FLAGS "-Wall -fPIC -pthread -fstrict-aliasing -ansi-alias-check" CACHE STRING "C Flags" FORCE )
+    SET( CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "C++ Debug Flags" FORCE )
+    SET( CMAKE_C_FLAGS_DEBUG "-g -O0" CACHE STRING "C Debug Flags" FORCE )
+    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 -xHost ${INTEL_INLINE} -qopt-subscript-in-range" CACHE STRING "C++ Release Flags" FORCE )
+    SET( CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}" CACHE STRING "C Release Flags" FORCE )
+    IF( APPLE )
+      SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,-undefined,error" CACHE STRING "Flags used by the linker during the creation of dll's." FORCE )
+    ELSE()
+      SET( CMAKE_EXE_LINKER_FLAGS "-Wl,--disable-new-dtags" CACHE STRING "Executable Link Flags" FORCE )
+      SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,--disable-new-dtags -Wl,--no-undefined" CACHE STRING "Flags used by the linker during the creation of dll's." FORCE )
+    ENDIF()
+  ELSEIF( ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
+    #-Weverything -Wno-unreachable-code -Wno-newline-eof -Wno-c++98-compat -Wno-c++98-compat-pedantic
+    SET( CLANG_WARNING_FLAGS "-Wall -Wstrict-aliasing -Wnon-virtual-dtor -pedantic -Wno-variadic-macros -Wno-#pragma-messages")
+    IF( UNIX )
+      IF( APPLE )
+        IF ( ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 8.1.0 )
+          SET( CLANG_WARNING_FLAGS "${CLANG_WARNING_FLAGS} -Wno-undefined-var-template" )
+        ENDIF()
+      ELSEIF( ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER 3.8.0 )
+        SET( CLANG_WARNING_FLAGS "${CLANG_WARNING_FLAGS} -Wno-undefined-var-template" )
+      ENDIF()
+    ENDIF()
+    SET( CMAKE_CXX_FLAGS "-std=c++14 ${CLANG_WARNING_FLAGS} -fstrict-aliasing" CACHE STRING "C++ Flags" FORCE)
+    SET( CMAKE_C_FLAGS "-Wall -fstrict-aliasing -Wstrict-aliasing" CACHE STRING "C Flags" FORCE)
+    IF( APPLE )
+      SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC" CACHE STRING "C++ Flags" FORCE)
+      SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC" CACHE STRING "C Flags" FORCE)
+    ELSEIF( CYGWIN )
+    ELSE()
+      SET( CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -pthread" CACHE STRING "C++ Flags" FORCE)
+      SET( CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC -pthread" CACHE STRING "C Flags" FORCE)
+    ENDIF()
+    SET( CMAKE_CXX_FLAGS_DEBUG "-g -O0 -ftrapv" CACHE STRING "C++ Debug Flags" FORCE )
+    SET( CMAKE_C_FLAGS_DEBUG   "-g -O0 -ftrapv" CACHE STRING "C Debug Flags" FORCE )
+
+    SET( CMAKE_CXX_FLAGS_RELEASE "-O3 -funroll-loops" CACHE STRING "C++ Release Flags" FORCE )
+    SET( CMAKE_C_FLAGS_RELEASE   "-O3 -funroll-loops" CACHE STRING "C Release Flags" FORCE )
+
+    SET( CMAKE_CXX_FLAGS_MEMCHECK "-g -Os -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls" CACHE STRING "C++ Compiler Memory Check Flags" FORCE )
+    SET( CMAKE_C_FLAGS_MEMCHECK   "-g -Os -fsanitize=address -fno-omit-frame-pointer -fno-optimize-sibling-calls" CACHE STRING "C Compiler Memory Check Flags" FORCE )
+
+    #IF( NOT CYGWIN )
+    #  SET( CMAKE_EXE_LINKER_FLAGS "-lc++" CACHE STRING "Executable Link Flags." FORCE )
+    #ENDIF()
+    IF( APPLE )
+      SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,-undefined,error" CACHE STRING "Flags used by the linker during the creation of dll's." FORCE )
+    ELSE()
+      SET( CMAKE_EXE_LINKER_FLAGS "-Wl,--disable-new-dtags" CACHE STRING "Executable Link Flags" FORCE )
+      SET( CMAKE_SHARED_LINKER_FLAGS "-Wl,--disable-new-dtags -Wl,--no-undefined" CACHE STRING "Flags used by the linker during the creation of dll's." FORCE )
+    ENDIF()
   ENDIF()
   
 ENDIF()
@@ -92,12 +151,14 @@ MARK_AS_ADVANCED( FORCE
                   CMAKE_CXX_FLAGS_DEBUG
                   CMAKE_CXX_FLAGS_RELEASE
                   CMAKE_CXX_FLAGS_MEMCHECK
+                  CMAKE_EXE_LINKER_FLAGS
                   CMAKE_EXE_LINKER_FLAGS_MEMCHECK
-                  CMAKE_CXX_FLAGS_VECTORIZE 
-                  CMAKE_CXX_FLAGS_ANALYZE
+                  CMAKE_SHARED_LINKER_FLAGS
+                  CMAKE_SHARED_LINKER_FLAGS_MEMCHECK
                   CMAKE_C_FLAGS
                   CMAKE_C_FLAGS_DEBUG
                   CMAKE_C_FLAGS_RELEASE
+                  CMAKE_C_FLAGS_MEMCHECK
                 )
 
 IF( CMAKE_BUILD_TYPE )
