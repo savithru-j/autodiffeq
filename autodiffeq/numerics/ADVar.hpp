@@ -110,6 +110,26 @@ public:
   template<typename U> friend ADVar<U> operator/( const ADVar<U>& a, const U& b);
   template<typename U> friend ADVar<U> operator/( const U& a, const ADVar<U>& b);
 
+    // relational operators
+  template<typename U> friend bool operator==(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator==(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator==(const U& a, const ADVar<U>& b);
+  template<typename U> friend bool operator!=(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator!=(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator!=(const U& a, const ADVar<U>& b);
+  template<typename U> friend bool operator>(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator>(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator>(const U& a, const ADVar<U>& b);
+  template<typename U> friend bool operator<(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator<(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator<(const U& a, const ADVar<U>& b);
+  template<typename U> friend bool operator>=(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator>=(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator>=(const U& a, const ADVar<U>& b);
+  template<typename U> friend bool operator<=(const ADVar<U>& a, const ADVar<U>& b);
+  template<typename U> friend bool operator<=(const ADVar<U>& a, const U& b);
+  template<typename U> friend bool operator<=(const U& a, const ADVar<U>& b);
+
 protected:
 
   T v_; //value
@@ -487,5 +507,61 @@ ADVar<T> operator/(const T& a, const ADVar<T>& b)
     return c;
   }
 }
+
+// relational operators
+
+template<typename T>
+bool operator==(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ == b.v_; }
+
+template<typename T>
+bool operator==(const ADVar<T>& a, const T& b) { return a.v_ == b; }
+
+template<typename T>
+bool operator==(const T& a, const ADVar<T>& b) { return a == b.v_; }
+
+template<typename T>
+bool operator!=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ != b.v_; }
+
+template<typename T>
+bool operator!=(const ADVar<T>& a, const T& b) { return a.v_ != b; }
+
+template<typename T>
+bool operator!=(const T& a, const ADVar<T>& b) { return a != b.v_; }
+
+template<typename T>
+bool operator>(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ > b.v_; }
+
+template<typename T>
+bool operator>(const ADVar<T>& a, const T& b) { return a.v_ > b; }
+
+template<typename T>
+bool operator>(const T& a, const ADVar<T>& b) { return a > b.v_; }
+
+template<typename T>
+bool operator<(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ < b.v_; }
+
+template<typename T>
+bool operator<(const ADVar<T>& a, const T& b) { return a.v_ < b; }
+
+template<typename T>
+bool operator<(const T& a, const ADVar<T>& b) { return a < b.v_; }
+
+template<typename T>
+bool operator>=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ >= b.v_; }
+
+template<typename T>
+bool operator>=(const ADVar<T>& a, const T& b) { return a.v_ >= b; }
+
+template<typename T>
+bool operator>=(const T& a, const ADVar<T>& b) { return a >= b.v_; }
+
+template<typename T>
+bool operator<=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ <= b.v_; }
+
+template<typename T>
+bool operator<=(const ADVar<T>& a, const T& b) { return a.v_ <= b; }
+
+template<typename T>
+bool operator<=(const T& a, const ADVar<T>& b) { return a <= b.v_; }
 
 }

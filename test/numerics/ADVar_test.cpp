@@ -233,3 +233,31 @@ TEST( ADVar, Binary )
     EXPECT_DOUBLE_EQ(var.deriv(1), 5.0);
   }
 }
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, Relational )
+{
+  ADVar<double> var0(2, {3, -4});
+  ADVar<double> var1(2, {-5, 1});
+  ADVar<double> var2(7, {-2, 5});
+
+  EXPECT_TRUE(var0 == var1);
+  EXPECT_TRUE(var0 != var2);
+  EXPECT_TRUE(var0 <= var1);
+  EXPECT_TRUE(var0 >= var1);
+  EXPECT_TRUE(var0 < var2);
+  EXPECT_TRUE(var2 > var0);
+
+  EXPECT_TRUE(var0 == 2.0);
+  EXPECT_TRUE(2.0 == var0);
+  EXPECT_TRUE(var0 != 3.0);
+  EXPECT_TRUE(3.0 != var0);
+  EXPECT_TRUE(var0 <= 2.0);
+  EXPECT_TRUE(2.0 <= var0);
+  EXPECT_TRUE(var0 >= 2.0);
+  EXPECT_TRUE(2.0 >= var0);
+  EXPECT_TRUE(var0 < 10.0);
+  EXPECT_TRUE(-3.0 < var0);
+  EXPECT_TRUE(var2 > 1.0);
+  EXPECT_TRUE(42.0 > var2);
+}
