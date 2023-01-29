@@ -261,3 +261,59 @@ TEST( ADVar, Relational )
   EXPECT_TRUE(var2 > 1.0);
   EXPECT_TRUE(42.0 > var2);
 }
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, Trigonometric )
+{
+  ADVar<double> x(2, {3, -4});
+  ADVar<double> y(0.6, {-2, 5});
+  ADVar<double> v(3.0);
+
+  {
+    auto z = cos(x);
+    EXPECT_DOUBLE_EQ(z.value(), cos(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), -sin(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), -sin(2.0)*-4.0);
+
+    z = cos(v);
+    EXPECT_DOUBLE_EQ(z.value(), cos(3.0));
+    EXPECT_DOUBLE_EQ(z.size(), 0);
+  }
+  {
+    auto z = sin(x);
+    EXPECT_DOUBLE_EQ(z.value(), sin(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), cos(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), cos(2.0)*-4.0);
+  }
+  {
+    auto z = tan(x);
+    EXPECT_DOUBLE_EQ(z.value(), tan(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(cos(2.0)*cos(2.0))*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(cos(2.0)*cos(2.0))*-4.0);
+  }
+  {
+    auto z = acos(y);
+    EXPECT_DOUBLE_EQ(z.value(), acos(0.6));
+    EXPECT_DOUBLE_EQ(z.deriv(0), -1.0/sqrt(1.0 - 0.6*0.6) * -2.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), -1.0/sqrt(1.0 - 0.6*0.6) * 5.0);
+  }
+  {
+    auto z = asin(y);
+    EXPECT_DOUBLE_EQ(z.value(), asin(0.6));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/sqrt(1.0 - 0.6*0.6) * -2.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/sqrt(1.0 - 0.6*0.6) * 5.0);
+  }
+  {
+    auto z = atan(y);
+    EXPECT_DOUBLE_EQ(z.value(), atan(0.6));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(1.0 + 0.6*0.6) * -2.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(1.0 + 0.6*0.6) * 5.0);
+  }
+  {
+    auto z = atan2(y,x);
+    EXPECT_DOUBLE_EQ(z.value(), atan2(0.6, 2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(2.0*2.0 + 0.6*0.6) * (2.0*-2.0 - 0.6*3.0));
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(2.0*2.0 + 0.6*0.6) * (2.0* 5.0 - 0.6*-4.0));
+  }
+
+}

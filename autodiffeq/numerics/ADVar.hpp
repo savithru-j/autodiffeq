@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <initializer_list>
+#include <cmath>
 
 namespace autodiffeq
 {
@@ -13,6 +14,26 @@ namespace autodiffeq
 // ADVar : Auto-diff variable for storing a value and a vector of derivatives
 template<typename T>
 class ADVar;
+
+using std::cos;
+using std::sin;
+using std::tan;
+using std::acos;
+using std::asin;
+using std::atan;
+using std::atan2;
+
+using std::cosh;
+using std::sinh;
+using std::tanh;
+
+using std::exp;
+using std::expm1;
+using std::log;
+using std::log10;
+using std::log1p;
+
+using std::sqrt;
 
 template<typename T>
 class ADVar
@@ -129,6 +150,27 @@ public:
   template<typename U> friend bool operator<=(const ADVar<U>& a, const ADVar<U>& b);
   template<typename U> friend bool operator<=(const ADVar<U>& a, const U& b);
   template<typename U> friend bool operator<=(const U& a, const ADVar<U>& b);
+
+  // trigonometric functions
+  template<typename U> friend ADVar<U> cos(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> sin(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> tan(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> acos( const ADVar<U>& var);
+  template<typename U> friend ADVar<U> asin( const ADVar<U>& var);
+  template<typename U> friend ADVar<U> atan( const ADVar<U>& var);
+  template<typename U> friend ADVar<U> atan2( const ADVar<U>& y, const ADVar<U>& x);
+
+  // hyperbolic functions
+  template<typename U> friend ADVar<U> cosh(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> sinh(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> tanh(const ADVar<U>& var);
+
+  // exponential and logarithm functions
+  template<typename U> friend ADVar<U> exp(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> expm1(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> log(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> log10(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> log1p(const ADVar<U>& var);
 
 protected:
 
@@ -563,5 +605,59 @@ bool operator<=(const ADVar<T>& a, const T& b) { return a.v_ <= b; }
 
 template<typename T>
 bool operator<=(const T& a, const ADVar<T>& b) { return a <= b.v_; }
+
+#define ADVAR_FUNC(NAME, VALUE, DERIV) \
+template<typename T> \
+ADVar<T> \
+NAME(const ADVar<T>& var) \
+{ \
+  if ( var.N_ == 0 ) \
+    return ADVar<T>(VALUE); \
+  \
+  T tmp = DERIV; \
+  ADVar<T> z(VALUE, var.N_); \
+  for (unsigned int i = 0; i < var.N_; i++) \
+    z.d_[i] = tmp*var.d_[i]; \
+  return z; \
+}
+
+// trigonometric functions
+ADVAR_FUNC( cos, cos(var.v_), -sin(var.v_) )
+ADVAR_FUNC( sin, sin(var.v_),  cos(var.v_) )
+ADVAR_FUNC( tan, tan(var.v_),  T(1)/(cos(var.v_)*cos(var.v_)) )
+ADVAR_FUNC( acos, acos(var.v_), -T(1)/sqrt(1 - var.v_*var.v_) )
+ADVAR_FUNC( asin, asin(var.v_),  T(1)/sqrt(1 - var.v_*var.v_) )
+ADVAR_FUNC( atan, atan(var.v_),  T(1)/(1 + var.v_*var.v_) )
+
+template<typename T>
+ADVar<T>
+atan2(const ADVar<T>& y, const ADVar<T>& x)
+{
+  T val = atan2(y.v_, x.v_);
+  if (y.N_ == 0 && x.N_ == 0)
+    return ADVar<T>(val);
+  else if (y.N_ > 0 && x.N_ == 0)
+  {
+    T tmp = T(1) / (y.v_*y.v_ + x.v_*x.v_);
+    ADVar<T> z(val, y.N_);
+    for (unsigned int i = 0; i < y.N_; i++)
+      z.d_[i] = tmp * x.v_ * y.d_[i];
+    return z;
+  }
+  else if (y.N_ == 0 && x.N_ > 0)
+  {
+    T tmp = T(1) / (y.v_*y.v_ + x.v_*x.v_);
+    ADVar<T> z(val, x.N_);
+    for (unsigned int i = 0; i < x.N_; i++)
+      z.d_[i] = -tmp * y.v_ * x.d_[i];
+    return z;
+  }
+  assert(y.N_ == x.N_);
+  T tmp = T(1) / (y.v_*y.v_ + x.v_*x.v_);
+  ADVar<T> z(val, y.N_);
+  for (unsigned int i = 0; i < y.N_; i++)
+    z.d_[i] = tmp * (x.v_*y.d_[i] - y.v_*x.d_[i]);
+  return z;
+}
 
 }
