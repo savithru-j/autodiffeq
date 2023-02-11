@@ -315,5 +315,82 @@ TEST( ADVar, Trigonometric )
     EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(2.0*2.0 + 0.6*0.6) * (2.0*-2.0 - 0.6*3.0));
     EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(2.0*2.0 + 0.6*0.6) * (2.0* 5.0 - 0.6*-4.0));
   }
+}
 
+//----------------------------------------------------------------------------//
+TEST( ADVar, Hyperbolic )
+{
+  ADVar<double> x(2, {3, -4});
+  {
+    auto z = cosh(x);
+    EXPECT_DOUBLE_EQ(z.value(), cosh(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), sinh(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), sinh(2.0)*-4.0);
+  }
+  {
+    auto z = sinh(x);
+    EXPECT_DOUBLE_EQ(z.value(), sinh(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), cosh(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), cosh(2.0)*-4.0);
+  }
+  {
+    auto z = tanh(x);
+    EXPECT_DOUBLE_EQ(z.value(), tanh(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(cosh(2.0)*cosh(2.0))*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(cosh(2.0)*cosh(2.0))*-4.0);
+  }
+}
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, ExpAndLog )
+{
+  ADVar<double> x(2, {3, -4});
+  {
+    auto z = exp(x);
+    EXPECT_DOUBLE_EQ(z.value(), exp(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), exp(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), exp(2.0)*-4.0);
+  }
+  {
+    auto z = expm1(x);
+    EXPECT_DOUBLE_EQ(z.value(), expm1(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), exp(2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), exp(2.0)*-4.0);
+  }
+  {
+    auto z = log(x);
+    EXPECT_DOUBLE_EQ(z.value(), log(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/2.0*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/2.0*-4.0);
+  }
+  {
+    auto z = log10(x);
+    EXPECT_DOUBLE_EQ(z.value(), log10(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(2.0*log(10.0))*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(2.0*log(10.0))*-4.0);
+  }
+  {
+    auto z = log1p(x);
+    EXPECT_DOUBLE_EQ(z.value(), log1p(2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0/(1.0 + 2.0)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0/(1.0 + 2.0)*-4.0);
+  }
+}
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, ErrorFunc )
+{
+  ADVar<double> x(0.75, {3, -4});
+  {
+    auto z = erf(x);
+    EXPECT_DOUBLE_EQ(z.value(), erf(0.75));
+    EXPECT_DOUBLE_EQ(z.deriv(0), (2.0/sqrt(M_PI))*exp(-0.75*0.75)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), (2.0/sqrt(M_PI))*exp(-0.75*0.75)*-4.0);
+  }
+  {
+    auto z = erfc(x);
+    EXPECT_DOUBLE_EQ(z.value(), erfc(0.75));
+    EXPECT_DOUBLE_EQ(z.deriv(0), -(2.0/sqrt(M_PI))*exp(-0.75*0.75)*3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), -(2.0/sqrt(M_PI))*exp(-0.75*0.75)*-4.0);
+  }
 }

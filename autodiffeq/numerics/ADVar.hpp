@@ -33,7 +33,16 @@ using std::log;
 using std::log10;
 using std::log1p;
 
+using std::erf;
+using std::erfc;
+
+using std::pow;
 using std::sqrt;
+
+using std::ceil;
+using std::floor;
+using std::abs;
+using std::fabs;
 
 template<typename T>
 class ADVar
@@ -171,6 +180,22 @@ public:
   template<typename U> friend ADVar<U> log(const ADVar<U>& var);
   template<typename U> friend ADVar<U> log10(const ADVar<U>& var);
   template<typename U> friend ADVar<U> log1p(const ADVar<U>& var);
+
+  // error functions
+  template<typename U> friend ADVar<U> erf(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> erfc(const ADVar<U>& var);
+
+  // power functions
+  template<typename U> friend ADVar<U> pow( const ADVar<U>& x, const ADVar<U>& y);
+  template<typename U> friend ADVar<U> pow( const ADVar<U>& x, const U& y);
+  template<typename U> friend ADVar<U> pow( const U& x, const ADVar<U>& y);
+  template<typename U> friend ADVar<U> sqrt(const ADVar<U>& x);
+
+  // rounding and absolute functions
+  template<typename U> friend ADVar<U> ceil(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> floor(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> abs(const ADVar<U>& var);
+  template<typename U> friend ADVar<U> fabs(const ADVar<U>& var);
 
 protected:
 
@@ -659,5 +684,23 @@ atan2(const ADVar<T>& y, const ADVar<T>& x)
     z.d_[i] = tmp * (x.v_*y.d_[i] - y.v_*x.d_[i]);
   return z;
 }
+
+// hyperbolic functions
+ADVAR_FUNC( cosh, cosh(var.v_), sinh(var.v_) )
+ADVAR_FUNC( sinh, sinh(var.v_), cosh(var.v_) )
+ADVAR_FUNC( tanh, tanh(var.v_), T(1)/(cosh(var.v_)*cosh(var.v_)) )
+
+// exponential and logarithm functions
+ADVAR_FUNC( exp, exp(var.v_), exp(var.v_) )
+ADVAR_FUNC( expm1, expm1(var.v_), exp(var.v_) )
+ADVAR_FUNC( log, log(var.v_), T(1)/var.v_ )
+ADVAR_FUNC( log10, log10(var.v_), T(1)/(var.v_*log(10.)) )
+ADVAR_FUNC( log1p, log1p(var.v_), T(1)/( 1 + var.v_ ) )
+
+// error functions
+ADVAR_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
+ADVAR_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
+
+// power functions
 
 }
