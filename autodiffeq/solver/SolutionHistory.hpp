@@ -42,13 +42,29 @@ public:
       data_[offset + m] = sol[m];
   }
 
+  inline double GetTime(int step) const { return time_vec_(step); }
+
   inline const Array1D<T>& GetData() const { return data_; }
   inline Array1D<T>& GetData() { return data_; }
 
 protected:
   int sol_dim_ = 0;
-  const Array1D<double>& time_vec_;
+  Array1D<double> time_vec_;
   Array1D<T> data_;
 };
+
+template<class T>
+inline std::ostream& operator<<(std::ostream& os, const SolutionHistory<T>& sol_hist)
+{
+  int sol_dim = sol_hist.GetSolutionSize();
+  int nt = sol_hist.GetNumSteps();
+  for (int step = 0; step < nt; ++step)
+  {
+    for (int i = 0; i < sol_dim-1; ++i)
+      os << sol_hist(i, step) << ", ";
+    os << sol_hist(sol_dim-1, step) << std::endl;
+  }
+  return os;
+}
 
 }

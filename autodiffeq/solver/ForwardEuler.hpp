@@ -7,6 +7,7 @@
 #include <iostream>
 #include <vector>
 #include <ostream>
+#include "ODE.hpp"
 #include "SolutionHistory.hpp"
 
 namespace autodiffeq
@@ -16,27 +17,27 @@ namespace ForwardEuler
 {
 
 template<typename T>
-SolutionHistory<T> Solve(const Array1D<T>& sol0, const Array1D<double>& time_vec)
+SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, const Array1D<double>& time_vec)
 {
   const int num_steps = time_vec.size() - 1;
   assert(num_steps >= 1);
   const int sol_dim = sol0.size();
-  std::cout << num_steps << std::endl;
-  SolutionHistory<T> sol_hist(sol_dim, num_steps+1);
+  SolutionHistory<T> sol_hist(sol_dim, time_vec);
   sol_hist.SetSolution(0, sol0);
 
   double time = time_vec(0);
   Array1D<T> sol(sol0);
   Array1D<T> rhs(sol_dim, T(0));
 
-  for (int step = 1; step <= num_steps; ++step)
+  for (int step = 0; step < num_steps; ++step)
   {
-    //TODO: Evaluate rhs
+    ode.EvalRHS(sol, step, time, rhs);
 
-    double dt = time_vec(step) - time_vec(step-1);
+    double dt = time_vec(step+1) - time_vec(step);
     for (int i = 0; i < sol_dim; ++i)
       sol(i) += rhs(i)*dt;
 
+    sol_hist.SetSolution(step+1, sol);
     time += dt;
   }
 
@@ -44,7 +45,8 @@ SolutionHistory<T> Solve(const Array1D<T>& sol0, const Array1D<double>& time_vec
 }
 
 template<typename T>
-SolutionHistory<T> Solve(const Array1D<T>& sol0, const double t_start, const double t_end, const int num_steps)
+SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, 
+                         const double t_start, const double t_end, const int num_steps)
 {
   const double dt = (t_end - t_start) / (double) num_steps;
   Array1D<double> time_vec(num_steps+1);
@@ -52,8 +54,7 @@ SolutionHistory<T> Solve(const Array1D<T>& sol0, const double t_start, const dou
   for (int step = 1; step <= num_steps; ++step)
     time_vec(step) = time_vec(step-1) + dt;
 
-  std::cout << time_vec << std::endl;
-  return Solve(sol0, time_vec);
+  return Solve(ode, sol0, time_vec);
 }
 
 
