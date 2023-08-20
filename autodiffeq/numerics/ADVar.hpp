@@ -135,17 +135,17 @@ public:
 
   // binary operators
   template<typename U> friend ADVar<U> operator+( const ADVar<U>& a, const ADVar<U>& b);
-  template<typename U> friend ADVar<U> operator+( const ADVar<U>& a, const U& b);
-  template<typename U> friend ADVar<U> operator+( const U& a, const ADVar<U>& b);
+  template<typename U, typename V> friend ADVar<U> operator+( const ADVar<U>& a, const V& b);
+  template<typename U, typename V> friend ADVar<U> operator+( const V& a, const ADVar<U>& b);
   template<typename U> friend ADVar<U> operator-( const ADVar<U>& a, const ADVar<U>& b);
-  template<typename U> friend ADVar<U> operator-( const ADVar<U>& a, const U& b);
-  template<typename U> friend ADVar<U> operator-( const U& a, const ADVar<U>& b);
+  template<typename U, typename V> friend ADVar<U> operator-( const ADVar<U>& a, const V& b);
+  template<typename U, typename V> friend ADVar<U> operator-( const V& a, const ADVar<U>& b);
   template<typename U> friend ADVar<U> operator*( const ADVar<U>& a, const ADVar<U>& b);
-  template<typename U> friend ADVar<U> operator*( const ADVar<U>& a, const U& b);
-  template<typename U> friend ADVar<U> operator*( const U& a, const ADVar<U>& b);
+  template<typename U, typename V> friend ADVar<U> operator*( const ADVar<U>& a, const V& b);
+  template<typename U, typename V> friend ADVar<U> operator*( const V& a, const ADVar<U>& b);
   template<typename U> friend ADVar<U> operator/( const ADVar<U>& a, const ADVar<U>& b);
-  template<typename U> friend ADVar<U> operator/( const ADVar<U>& a, const U& b);
-  template<typename U> friend ADVar<U> operator/( const U& a, const ADVar<U>& b);
+  template<typename U, typename V> friend ADVar<U> operator/( const ADVar<U>& a, const V& b);
+  template<typename U, typename V> friend ADVar<U> operator/( const V& a, const ADVar<U>& b);
 
     // relational operators
   template<typename U> friend bool operator==(const ADVar<U>& a, const ADVar<U>& b);
@@ -404,8 +404,8 @@ ADVar<T> operator+(const ADVar<T>& a, const ADVar<T>& b)
   return c;
 }
 
-template<typename T>
-ADVar<T> operator+(const ADVar<T>& a, const T& b)
+template<typename T, typename U>
+ADVar<T> operator+(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ + b);
@@ -413,8 +413,8 @@ ADVar<T> operator+(const ADVar<T>& a, const T& b)
     return ADVar<T>(a.v_ + b, a.d_, a.N_);
 }
 
-template<typename T>
-ADVar<T> operator+(const T& a, const ADVar<T>& b)
+template<typename T, typename U>
+ADVar<T> operator+(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a + b.v_);
@@ -444,8 +444,8 @@ ADVar<T> operator-(const ADVar<T>& a, const ADVar<T>& b)
   return c;
 }
 
-template<typename T>
-ADVar<T> operator-(const ADVar<T>& a, const T& b)
+template<typename T, typename U>
+ADVar<T> operator-(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ - b);
@@ -453,8 +453,8 @@ ADVar<T> operator-(const ADVar<T>& a, const T& b)
     return ADVar<T>(a.v_ - b, a.d_, a.N_);
 }
 
-template<typename T>
-ADVar<T> operator-(const T& a, const ADVar<T>& b)
+template<typename T, typename U>
+ADVar<T> operator-(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a - b.v_);
@@ -494,8 +494,8 @@ ADVar<T> operator*(const ADVar<T>& a, const ADVar<T>& b)
   return c;
 }
 
-template<typename T>
-ADVar<T> operator*(const ADVar<T>& a, const T& b)
+template<typename T, typename U>
+ADVar<T> operator*(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ * b);
@@ -508,8 +508,8 @@ ADVar<T> operator*(const ADVar<T>& a, const T& b)
   }
 }
 
-template<typename T>
-ADVar<T> operator*(const T& a, const ADVar<T>& b)
+template<typename T, typename U>
+ADVar<T> operator*(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a * b.v_);
@@ -552,8 +552,8 @@ ADVar<T> operator/(const ADVar<T>& a, const ADVar<T>& b)
   return c;
 }
 
-template<typename T>
-ADVar<T> operator/(const ADVar<T>& a, const T& b)
+template<typename T, typename U>
+ADVar<T> operator/(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ / b);
@@ -567,8 +567,8 @@ ADVar<T> operator/(const ADVar<T>& a, const T& b)
   }
 }
 
-template<typename T>
-ADVar<T> operator/(const T& a, const ADVar<T>& b)
+template<typename T, typename U>
+ADVar<T> operator/(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a / b.v_);
