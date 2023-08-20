@@ -13,6 +13,8 @@ public:
 
   TestODE() = default;
 
+  int GetSolutionSize() const { return 2; }
+
   void EvalRHS(Array1D<double>& sol, int step, double time, Array1D<double>& rhs)
   {
     rhs(0) = -1.0*sol(0) + 1.8*sol(1);

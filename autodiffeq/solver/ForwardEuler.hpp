@@ -25,6 +25,13 @@ SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, const Array1D<double>
   SolutionHistory<T> sol_hist(sol_dim, time_vec);
   sol_hist.SetSolution(0, sol0);
 
+  if (ode.GetSolutionSize() != sol_dim)
+  {
+    std::cout << "Solution size (= " << sol_dim << ") does not match ODE size (= " 
+              << ode.GetSolutionSize() << ")!" << std::endl;
+    exit(1);
+  }
+
   double time = time_vec(0);
   Array1D<T> sol(sol0);
   Array1D<T> rhs(sol_dim, T(0));

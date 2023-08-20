@@ -75,6 +75,7 @@ public:
 
   explicit ADVar(const T& v, const int num_deriv) : v_(v) 
   {
+    assert(num_deriv >= 0);
     N_ = num_deriv;
     if (N_ > 0)
       d_ = new T[N_];

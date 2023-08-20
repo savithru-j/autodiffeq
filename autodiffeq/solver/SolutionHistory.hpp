@@ -23,8 +23,8 @@ public:
   inline int GetSolutionSize() const { return sol_dim_; }
   inline int GetNumSteps() const { return time_vec_.size(); }
 
-  inline const T& operator()(int i, int step) const { return data_[step*sol_dim_ + i]; }
-  inline T& operator()(int i, int step) { return data_[step*sol_dim_ + i]; }
+  inline const T& operator()(int step, int state) const { return data_[step*sol_dim_ + state]; }
+  inline T& operator()(int step, int state) { return data_[step*sol_dim_ + state]; }
 
   //! Returns the solution at a given step
   inline void GetSolution(const int step, Array1D<T>& sol) const {
@@ -61,8 +61,8 @@ inline std::ostream& operator<<(std::ostream& os, const SolutionHistory<T>& sol_
   for (int step = 0; step < nt; ++step)
   {
     for (int i = 0; i < sol_dim-1; ++i)
-      os << sol_hist(i, step) << ", ";
-    os << sol_hist(sol_dim-1, step) << std::endl;
+      os << sol_hist(step, i) << ", ";
+    os << sol_hist(step, sol_dim-1) << std::endl;
   }
   return os;
 }

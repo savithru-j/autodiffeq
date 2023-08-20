@@ -20,6 +20,8 @@ public:
 
   virtual ~ODE() = default;
 
+  virtual int GetSolutionSize() const = 0;
+
   virtual void EvalRHS(Array1D<double>& sol, int step, double time, Array1D<double>& rhs)
   {
     std::cout << "EvalRHS of ODE not implemented for double datatype!" << std::endl;
