@@ -7,6 +7,7 @@
 #include <cassert>
 #include <initializer_list>
 #include <cmath>
+#include <ostream>
 
 namespace autodiffeq
 {
@@ -109,7 +110,7 @@ public:
   inline T& deriv(int i = 0) 
   {
     assert(N_ > 0);
-    assert(i >= 0 && i < N_); 
+    assert(i >= 0 && i < (int) N_); 
     return d_[i]; 
   }
   inline T deriv(int i = 0) const { return N_ > 0 ? d_[i] : T(0.0); }
