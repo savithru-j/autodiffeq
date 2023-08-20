@@ -12,6 +12,7 @@ namespace autodiffeq
 /* Base class for implementing the RHS function (e.g. time derivative of the state)
  * of an ODE of the form du/dt = f(u, t) */
 
+template<typename T>
 class ODE
 {
 public:
@@ -22,18 +23,7 @@ public:
 
   virtual int GetSolutionSize() const = 0;
 
-  virtual void EvalRHS(Array1D<double>& sol, int step, double time, Array1D<double>& rhs)
-  {
-    std::cout << "EvalRHS of ODE not implemented for double datatype!" << std::endl;
-    exit(1);
-  };
-
-  virtual void EvalRHS(Array1D<ADVar<double>>& sol, int step, double time, Array1D<ADVar<double>>& rhs)
-  {
-    std::cout << "EvalRHS of ODE not implemented for ADVar<double> datatype!" << std::endl;
-    exit(1);
-  };
-
+  virtual void EvalRHS(Array1D<T>& sol, int step, double time, Array1D<T>& rhs) = 0;
 
 protected:
 

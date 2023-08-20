@@ -17,7 +17,7 @@ namespace ForwardEuler
 {
 
 template<typename T>
-SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, const Array1D<double>& time_vec)
+SolutionHistory<T> Solve(ODE<T>& ode, const Array1D<T>& sol0, const Array1D<double>& time_vec)
 {
   const int num_steps = time_vec.size() - 1;
   assert(num_steps >= 1);
@@ -52,7 +52,7 @@ SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, const Array1D<double>
 }
 
 template<typename T>
-SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0, 
+SolutionHistory<T> Solve(ODE<T>& ode, const Array1D<T>& sol0, 
                          const double t_start, const double t_end, const int num_steps)
 {
   const double dt = (t_end - t_start) / (double) num_steps;
@@ -64,8 +64,6 @@ SolutionHistory<T> Solve(ODE& ode, const Array1D<T>& sol0,
   return Solve(ode, sol0, time_vec);
 }
 
-
 }
-
 
 }

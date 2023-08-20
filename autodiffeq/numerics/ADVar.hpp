@@ -78,7 +78,11 @@ public:
     assert(num_deriv >= 0);
     N_ = num_deriv;
     if (N_ > 0)
+    {
       d_ = new T[N_];
+      for (unsigned int i = 0; i < N_; ++i)
+        d_[i] = T(0);
+    }
   }
   
   ADVar(const T& v) : v_(v), d_(nullptr), N_(0) {}
@@ -104,7 +108,8 @@ public:
   // derivative accessors
   inline T& deriv(int i = 0) 
   {
-    assert(N_ > 0); 
+    assert(N_ > 0);
+    assert(i >= 0 && i < N_); 
     return d_[i]; 
   }
   inline T deriv(int i = 0) const { return N_ > 0 ? d_[i] : T(0.0); }
@@ -703,5 +708,17 @@ ADVAR_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 ADVAR_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 
 // power functions
+
+
+// ostream
+inline std::ostream& operator<<(std::ostream& os, const ADVar<double>& var)
+{
+  os << "(" << var.value() << "; ";
+  const int N = var.size();
+  for (int i = 0; i < N-1; ++i)
+    os << var.deriv(i) << ", ";
+  os << var.deriv(N-1) << ")";
+  return os;
+}
 
 }

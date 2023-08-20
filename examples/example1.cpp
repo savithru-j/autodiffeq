@@ -7,7 +7,8 @@
 
 using namespace autodiffeq;
 
-class TestODE : public ODE
+template<typename T>
+class TestODE : public ODE<T>
 {
 public:
 
@@ -15,7 +16,7 @@ public:
 
   int GetSolutionSize() const { return 2; }
 
-  void EvalRHS(Array1D<double>& sol, int step, double time, Array1D<double>& rhs)
+  void EvalRHS(Array1D<T>& sol, int step, double time, Array1D<T>& rhs)
   {
     rhs(0) = -1.0*sol(0) + 1.8*sol(1);
     rhs(1) =  0.2*sol(0) - 2.0*sol(1);
@@ -25,7 +26,6 @@ public:
 
 int main()
 {
-
   ADVar<double> x(1.0, {0.0, 1.0});
   std::cout << x.value() << std::endl;
 
@@ -33,7 +33,7 @@ int main()
   sol0(0) = 10.0;
   sol0(1) = 7.0;
   
-  TestODE ode;
+  TestODE<double> ode;
   int nt = 100;
   auto sol_hist = ForwardEuler::Solve(ode, sol0, 0, 1, nt);
 
