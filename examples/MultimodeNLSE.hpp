@@ -42,12 +42,22 @@ public:
     // rhs(1) =  0.2*sol(0) - 2.0*sol(1);
   }
 
-  Array1D<T> GetInitialSolutionGaussian(T Et, T t_FWHM, T t_center) 
+  Array1D<T> GetInitialSolutionGaussian(const Array1D<double>& Et, const Array1D<double>& t_FWHM, const Array1D<double>& t_center) 
   {
-    const T tmp = std::sqrt(1665.0*Et / ((double)num_modes_ * t_FWHM * std::sqrt(M_PI)));
-
+    assert(num_modes_ == (int) Et.size());
+    assert(num_modes_ == (int) t_FWHM.size());
+    assert(num_modes_ == (int) t_center.size());
     Array1D<T> sol(GetSolutionSize());
 
+    for (int mode = 0; mode < num_modes_; ++mode)
+    {
+      const int offset = mode*num_time_points_;
+      const double A = std::sqrt(1665.0*Et(mode) / ((double)num_modes_ * t_FWHM(mode) * std::sqrt(M_PI)));
+      const double k = -1.665*1.665/(2.0*t_FWHM(mode)*t_FWHM(mode));
+      const double& tc = t_center(mode);
+      for (int j = 0; j < num_time_points_; ++j)
+        sol(offset + j) = A * std::exp(k*(tvec_(j)-tc)*(tvec_(j)-tc));
+    }
     return sol;
   }
 

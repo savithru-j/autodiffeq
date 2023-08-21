@@ -14,7 +14,7 @@ int main()
   using ComplexAD = ADVar<Complex>;
 
   int num_modes = 2;
-  int num_time_points = 64; //8192;
+  int num_time_points = 1024; //8192;
   int sol_dim = num_modes*num_time_points;
 
   Array2D<double> beta_mat_5x8 = 
@@ -33,13 +33,16 @@ int main()
   double tmin = -40, tmax = 40;
   MultimodeNLSE<Complex> ode(num_modes, num_time_points, tmin, tmax, beta_mat);
 
-  double Et = 9.0; //nJ (in range [6,30] nJ)
-  double t_FWHM = 0.1; //ps (in range [0.05, 0.5] ps)
-  double t_center = 0.0; //m
+  Array1D<double> Et = {9.0, 8.0}; //nJ (in range [6,30] nJ)
+  Array1D<double> t_FWHM = {0.1, 0.2}; //ps (in range [0.05, 0.5] ps)
+  Array1D<double> t_center = {0.0, 0.0}; //m
   Array1D<Complex> sol0 = ode.GetInitialSolutionGaussian(Et, t_FWHM, t_center);
 
+  for (int i = 0; i < num_time_points; ++i)
+      std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
+
   double z_start = 0, z_end = 0.25; //[m]
-  int nz = 100;
+  int nz = 1;
   auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz);
 
   std::cout << std::setprecision(5) << std::scientific;

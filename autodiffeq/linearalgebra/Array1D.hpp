@@ -21,6 +21,17 @@ public:
 
   Array1D(const std::vector<T>& v) : data_(v) {}
 
+  Array1D(const std::initializer_list<T>& v)
+  {
+    if (v.size() > 0) 
+    {
+      data_.resize(v.size());
+      auto row = v.begin();
+      for (std::size_t i = 0; i < v.size(); ++i)
+        data_[i] = *(row++);
+    }
+  }
+
   inline int m() const { return data_.size(); }
   inline std::size_t size() const { return data_.size(); }
 
