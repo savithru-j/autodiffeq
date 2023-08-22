@@ -38,8 +38,17 @@ public:
 
   void EvalRHS(Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
   {
-    rhs(0) = -1.0*sol(0) + 1.8*sol(1);
-    rhs(1) =  0.2*sol(0) - 2.0*sol(1);
+    constexpr std::complex<double> imag(0.0, 1.0);
+    const auto& beta00 = beta_mat_(0,0);
+
+    for (int p = 0; p < num_modes_; ++p)
+    {
+      const int offset = p*num_time_points_;
+      const auto& beta0p = beta_mat_(0,p);
+
+      for (int i = 0; i < num_time_points_; ++i)
+        rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i);
+    }
   }
 
   Array1D<T> GetInitialSolutionGaussian(const Array1D<double>& Et, const Array1D<double>& t_FWHM, const Array1D<double>& t_center) 
