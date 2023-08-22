@@ -38,8 +38,8 @@ public:
 
   void EvalRHS(Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
   {
-    // rhs(0) = -1.0*sol(0) + 1.8*sol(1);
-    // rhs(1) =  0.2*sol(0) - 2.0*sol(1);
+    rhs(0) = -1.0*sol(0) + 1.8*sol(1);
+    rhs(1) =  0.2*sol(0) - 2.0*sol(1);
   }
 
   Array1D<T> GetInitialSolutionGaussian(const Array1D<double>& Et, const Array1D<double>& t_FWHM, const Array1D<double>& t_center) 

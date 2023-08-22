@@ -3,6 +3,7 @@
 #include <autodiffeq/linearalgebra/Array2D.hpp>
 #include <iostream>
 #include <iomanip>
+#include <fstream>
 
 #include "MultimodeNLSE.hpp"
 
@@ -14,7 +15,7 @@ int main()
   using ComplexAD = ADVar<Complex>;
 
   int num_modes = 2;
-  int num_time_points = 1024; //8192;
+  int num_time_points = 8192; //8192;
   int sol_dim = num_modes*num_time_points;
 
   Array2D<double> beta_mat_5x8 = 
@@ -38,13 +39,27 @@ int main()
   Array1D<double> t_center = {0.0, 0.0}; //m
   Array1D<Complex> sol0 = ode.GetInitialSolutionGaussian(Et, t_FWHM, t_center);
 
-  for (int i = 0; i < num_time_points; ++i)
-      std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
+  // for (int i = 0; i < num_time_points; ++i)
+  //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 0.25; //[m]
-  int nz = 1;
+  int nz = 1000;
   auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz);
 
-  std::cout << std::setprecision(5) << std::scientific;
+  for (int mode = 0; mode < num_modes; ++mode)
+  {
+    std::ofstream f("intensity_mode" + std::to_string(mode) + ".txt", std::ios_base::out);
+    f << std::setprecision(6) << std::scientific;
+    const int offset = mode*num_time_points;
+    for (int i = 0; i < sol_hist.GetNumSteps(); ++i)
+    {
+      for (int j = 0; j < num_time_points-1; ++j)
+        f << std::abs(sol_hist(i, offset + j)) << ", ";
+      f << std::abs(sol_hist(i, offset + num_time_points-1)) << std::endl;
+    }
+    f.close();
+  }
+
+
   // std::cout << sol_hist << std::endl;
 }
