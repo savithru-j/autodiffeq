@@ -23,7 +23,7 @@ public:
 
   virtual int GetSolutionSize() const = 0;
 
-  virtual void EvalRHS(Array1D<T>& sol, int step, double time, Array1D<T>& rhs) = 0;
+  virtual void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) = 0;
 
 protected:
 

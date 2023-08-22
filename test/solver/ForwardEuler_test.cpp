@@ -19,7 +19,7 @@ public:
 
   int GetSolutionSize() const { return 3; }
 
-  void EvalRHS(Array1D<T>& sol, int step, double time, Array1D<T>& rhs)
+  void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs)
   {
     rhs(0) = coeff_(0)*sol(0) + coeff_(1)*sol(1) + coeff_(2)*sol(2);
     rhs(1) = coeff_(3)*sol(0) + coeff_(4)*sol(1) + coeff_(5)*sol(2);

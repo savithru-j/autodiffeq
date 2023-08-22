@@ -22,32 +22,59 @@ public:
   MultimodeNLSE(const int num_modes, const int num_time_points, 
                 const double tmin, const double tmax, const Array2D<double>& beta_mat) :
     num_modes_(num_modes), num_time_points_(num_time_points), tmin_(tmin), tmax_(tmax),
-    beta_mat_(beta_mat)
+    dt_((tmax_ - tmin_) / (double) (num_time_points_-1)), beta_mat_(beta_mat)
   {
-    const int nt = num_time_points_-1;
-    const double dt = (tmax_ - tmin_) / (double) nt;
     tvec_.resize(num_time_points_);
     tvec_(0) = tmin_;
-    for (int step = 1; step <= nt; ++step)
-      tvec_(step) = tvec_(step-1) + dt;
+    for (int step = 1; step < num_time_points_; ++step)
+      tvec_(step) = tvec_(step-1) + dt_;
 
     assert(beta_mat_.GetNumCols() == num_modes);
   }
 
   int GetSolutionSize() const { return num_modes_*num_time_points_; }
 
-  void EvalRHS(Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
+  void EvalRHS(const Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
   {
     constexpr std::complex<double> imag(0.0, 1.0);
     const auto& beta00 = beta_mat_(0,0);
+    const auto& beta10 = beta_mat_(1,0);
+
+    Array2D<T> sol_tderiv(beta_mat_.GetNumRows(), num_time_points_); //Stores the time-derivatives (e.g. d/dt, d^2/dt^2 ...) of a particular solution mode
 
     for (int p = 0; p < num_modes_; ++p)
     {
       const int offset = p*num_time_points_;
       const auto& beta0p = beta_mat_(0,p);
+      const auto& beta1p = beta_mat_(1,p);
+      const auto& beta2p = beta_mat_(2,p);
+      ComputeTimeDerivatives(p, sol, sol_tderiv);
 
-      for (int i = 0; i < num_time_points_; ++i)
-        rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i);
+      for (int i = 0; i < num_time_points_; ++i) 
+      {
+        rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i)
+                      - (beta1p - beta10)*sol_tderiv(0,i);
+                      - imag*beta2p*0.5*sol_tderiv(1,i);
+      }
+    }
+  }
+
+  void ComputeTimeDerivatives(const int mode, const Array1D<T>& sol, Array2D<T>& tderiv)
+  {
+    const int offset = mode*num_time_points_;
+
+    //First derivative d/dt
+    tderiv(0,0) = 0.0;
+    tderiv(0,num_time_points_-1) = 0.0;
+
+    //Second derivative d^2/dt^2
+    tderiv(1,0) = 2.0*(sol(offset+1) - sol(offset))/(dt_*dt_);
+    tderiv(1,num_time_points_-1) = 2.0*(sol(offset+num_time_points_-2) - sol(offset+num_time_points_-1))/(dt_*dt_);
+
+    for (int i = 1; i < num_time_points_-1; ++i)
+    {
+      tderiv(0,i) = (sol(offset+i+1) - sol(offset+i-1))/(2.0*dt_); //d/dt
+      tderiv(1,i) = (sol(offset+i+1) - 2.0*sol(offset+i) + sol(offset+i-1))/(dt_*dt_); //d^2/dt^2
     }
   }
 
@@ -73,7 +100,7 @@ public:
 protected:
   const int num_modes_;
   const int num_time_points_;
-  const double tmin_, tmax_;
+  const double tmin_, tmax_, dt_;
   Array1D<double> tvec_;
   const Array2D<double>& beta_mat_;
 };

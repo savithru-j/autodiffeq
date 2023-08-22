@@ -36,15 +36,17 @@ int main()
 
   Array1D<double> Et = {9.0, 8.0}; //nJ (in range [6,30] nJ)
   Array1D<double> t_FWHM = {0.1, 0.2}; //ps (in range [0.05, 0.5] ps)
-  Array1D<double> t_center = {0.0, 0.0}; //m
+  Array1D<double> t_center = {0.0, 0.0}; //ps
   Array1D<Complex> sol0 = ode.GetInitialSolutionGaussian(Et, t_FWHM, t_center);
 
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  double z_start = 0, z_end = 0.25; //[m]
-  int nz = 1000;
+  double z_start = 0, z_end = 0.05; //[m]
+  int nz = 5000;
   auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz);
+
+   std::cout << "Writing solution.." << std::endl;
 
   for (int mode = 0; mode < num_modes; ++mode)
   {
