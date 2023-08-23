@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import ticker, cm
 
+plt.figure(figsize=(30, 12))
+
 for mode in range(0,2):
   data = np.genfromtxt('../build/release/intensity_mode' + str(mode) + '.txt', delimiter=',');
   print(data.shape)

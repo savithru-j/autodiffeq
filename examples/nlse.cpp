@@ -43,14 +43,14 @@ int main()
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 0.05; //[m]
-  int nz = 5000;
+  int nz = 1000;
   auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz);
-
-   std::cout << "Writing solution.." << std::endl;
 
   for (int mode = 0; mode < num_modes; ++mode)
   {
-    std::ofstream f("intensity_mode" + std::to_string(mode) + ".txt", std::ios_base::out);
+    std::string filename = "intensity_mode" + std::to_string(mode) + ".txt";
+    std::cout << "Writing solution file: " << filename << std::endl;
+    std::ofstream f(filename, std::ios_base::out | std::ios::binary);
     f << std::setprecision(6) << std::scientific;
     const int offset = mode*num_time_points;
     for (int i = 0; i < sol_hist.GetNumSteps(); ++i)
