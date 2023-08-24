@@ -14,12 +14,12 @@ for mode in range(0,2):
   zvec = np.linspace(0.0, 0.1, Nz);
   tmat, zmat = np.meshgrid(tvec, zvec);
 
-  log_data = np.log10(np.clip(data, 1e-16, None));
+  # log_data = np.log10(np.clip(data, 1e-16, None));
 
   print(np.max(np.abs(data[:])))
 
   plt.subplot(1, 2, mode + 1);
-  cs = plt.contourf(tmat, zmat, log_data); #, cmap ="bone")
+  cs = plt.contourf(tmat, zmat, data, 100); #, cmap ="bone")
   cbar = plt.colorbar(cs)
   plt.title('Mode ' + str(mode) + ' intensity')
   
