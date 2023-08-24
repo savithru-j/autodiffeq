@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <chrono>
 
 #include "MultimodeNLSE.hpp"
 
@@ -13,6 +14,7 @@ int main()
 {
   using Complex = std::complex<double>;
   using ComplexAD = ADVar<Complex>;
+  using clock = std::chrono::high_resolution_clock;
 
   int num_modes = 2;
   int num_time_points = 8192; //8192;
@@ -42,9 +44,17 @@ int main()
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  double z_start = 0, z_end = 0.05; //[m]
-  int nz = 1000;
-  auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz);
+  double z_start = 0, z_end = 1.0; //[m]
+  int nz = 1000000;
+  int storage_stride = 200;
+
+  std::cout << "Solving ODE using Euler method..." << std::endl;
+  auto t0 = clock::now();
+  auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz, storage_stride);
+  auto t1 = clock::now();
+  auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() / 1000.0;
+  std::cout << std::fixed << std::setprecision(3);
+  std::cout << "Solved in " << time_elapsed << " secs." << std::endl;
 
   for (int mode = 0; mode < num_modes; ++mode)
   {
@@ -55,9 +65,12 @@ int main()
     const int offset = mode*num_time_points;
     for (int i = 0; i < sol_hist.GetNumSteps(); ++i)
     {
+      if (i % storage_stride == 0)
+      {
       for (int j = 0; j < num_time_points-1; ++j)
         f << std::abs(sol_hist(i, offset + j)) << ", ";
       f << std::abs(sol_hist(i, offset + num_time_points-1)) << std::endl;
+      }
     }
     f.close();
   }

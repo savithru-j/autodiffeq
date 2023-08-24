@@ -15,21 +15,26 @@ class SolutionHistory
 {
 public:
 
-  explicit SolutionHistory(int sol_dim, const Array1D<double>& time_vec) : sol_dim_(sol_dim), time_vec_(time_vec)
+  explicit SolutionHistory(int sol_dim, const Array1D<double>& time_vec,
+                           int storage_stride = 1) : 
+      sol_dim_(sol_dim), time_vec_(time_vec), storage_stride_(storage_stride)
   {
-    data_.resize(sol_dim_*time_vec_.size(), T(0));
+    num_steps_stored_ = time_vec_.size() / storage_stride_ + 1;
+    data_.resize(num_steps_stored_*sol_dim_, T(0));
   }
 
   inline int GetSolutionSize() const { return sol_dim_; }
   inline int GetNumSteps() const { return time_vec_.size(); }
+  inline int GetNumStepsStored() const { return num_steps_stored_; }
 
-  inline const T& operator()(int step, int state) const { return data_[step*sol_dim_ + state]; }
-  inline T& operator()(int step, int state) { return data_[step*sol_dim_ + state]; }
+  inline const T& operator()(int step, int state) const { return data_[(step/storage_stride_)*sol_dim_ + state]; }
+  inline T& operator()(int step, int state) { return data_[(step/storage_stride_)*sol_dim_ + state]; }
 
   //! Returns the solution at a given step
   inline void GetSolution(const int step, Array1D<T>& sol) const {
     assert(step >= 0 && step < (int) time_vec_.size());
-    const int offset = step*sol_dim_;
+    assert(step % storage_stride_ == 0);
+    const int offset = (step/storage_stride_)*sol_dim_;
     for (int m = 0; m < sol_dim_; ++m)
       sol[m] = data_[offset + m];
   }
@@ -37,7 +42,8 @@ public:
   //! Sets the solution at a given step
   inline void SetSolution(const int step, const Array1D<T>& sol) {
     assert(step >= 0 && step < (int) time_vec_.size());
-    const int offset = step*sol_dim_;
+    assert(step % storage_stride_ == 0);
+    const int offset = (step/storage_stride_)*sol_dim_;
     for (int m = 0; m < sol_dim_; ++m)
       data_[offset + m] = sol[m];
   }
@@ -50,6 +56,8 @@ public:
 protected:
   int sol_dim_ = 0;
   Array1D<double> time_vec_;
+  int storage_stride_;
+  std::size_t num_steps_stored_;
   Array1D<T> data_;
 };
 
