@@ -1,5 +1,6 @@
 #include <autodiffeq/numerics/ADVar.hpp>
 #include <autodiffeq/solver/ForwardEuler.hpp>
+#include <autodiffeq/solver/RK4.hpp>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
 #include <iostream>
 #include <iomanip>
@@ -17,7 +18,7 @@ int main()
   using clock = std::chrono::high_resolution_clock;
 
   int num_modes = 2;
-  int num_time_points = 8192; //8192;
+  int num_time_points = 8193; //8192;
   int sol_dim = num_modes*num_time_points;
 
   Array2D<double> beta_mat_5x8 = 
@@ -45,12 +46,12 @@ int main()
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 1.0; //[m]
-  int nz = 1000000;
-  int storage_stride = 200;
+  int nz = 20000;
+  int storage_stride = 10; //100;
 
-  std::cout << "Solving ODE using Euler method..." << std::endl;
+  std::cout << "Solving ODE..." << std::endl;
   auto t0 = clock::now();
-  auto sol_hist = ForwardEuler::Solve(ode, sol0, z_start, z_end, nz, storage_stride);
+  auto sol_hist = RK4::Solve(ode, sol0, z_start, z_end, nz, storage_stride);
   auto t1 = clock::now();
   auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() / 1000.0;
   std::cout << std::fixed << std::setprecision(3);

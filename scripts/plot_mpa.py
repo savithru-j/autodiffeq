@@ -18,14 +18,12 @@ plt.figure(figsize=(30, 12))
 for mode in range(0,2):
   # data = np.genfromtxt('../build/release/intensity_mode' + str(mode) + '.txt', delimiter=',');
 
-  u0_mpa = np.transpose(complex_field_data[:,mode,:]);
-  abs_u0_mpa = np.abs(u0_mpa);
-  Nt = u0_mpa.shape[0];
-  Nz = u0_mpa.shape[1];
-
-  print(u0_mpa.shape)
-  # Nz = data.shape[0];
-  # Nt = data.shape[1];
+  data_mpa = np.transpose(complex_field_data[:,mode,:]);
+  print(data_mpa.shape)
+  
+  abs_data_mpa = np.abs(data_mpa);
+  Nt = data_mpa.shape[0];
+  Nz = data_mpa.shape[1];
 
   tvec = np.linspace(-40.0, 40.0, Nt);
   zvec = np.linspace(0.0, 0.1, Nz);
@@ -33,11 +31,11 @@ for mode in range(0,2):
 
   # log_data = np.log10(np.clip(abs_u0_mpa, 1e-16, None));
 
-  print(np.max(abs_u0_mpa))
+  print(np.max(abs_data_mpa))
 
   plt.subplot(1, 2, mode + 1);
   # plt.plot(tvec, abs_u0_mpa);
-  cs = plt.contourf(tmat, zmat, np.transpose(abs_u0_mpa), 50); #, cmap ="bone")
+  cs = plt.contourf(tmat, zmat, np.transpose(abs_data_mpa), 100); #, cmap ="bone")
   cbar = plt.colorbar(cs)
   plt.title('Mode ' + str(mode) + ' intensity')
   
