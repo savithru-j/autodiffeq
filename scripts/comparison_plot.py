@@ -13,8 +13,8 @@ print(np.shape(complex_field_data))
 
 plt.figure(figsize=(30, 12))
 
-zstep_mpa = 200; #10mm
-zstep_cpp = 2000;
+zstep_mpa = 15000; #10mm
+zstep_cpp = 1500;
 
 for mode in range(0,2):
   cpp_data = np.genfromtxt('../build/release/intensity_mode' + str(mode) + '.txt', delimiter=',');
@@ -42,6 +42,7 @@ for mode in range(0,2):
   print('max_abs_cpp: ', np.max(abs_u_cpp))
 
   plt.subplot(1, 2, mode + 1);
-  plt.plot(tvec, abs_u_mpa, 'k-x', tvec2, abs_u_cpp, 'b-x');
+  plt.plot(tvec, abs_u_mpa, 'b-', tvec2, abs_u_cpp, 'r-');
+  plt.legend(['MPA','Finite difference with RK4'], loc='upper left')
   
 plt.show()

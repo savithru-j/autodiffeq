@@ -45,9 +45,9 @@ int main()
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  double z_start = 0, z_end = 1.0; //[m]
-  int nz = 20000;
-  int storage_stride = 10; //100;
+  double z_start = 0, z_end = 7.5; //[m]
+  int nz = 15000*20;
+  int storage_stride = 10*20; //100;
 
   std::cout << "Solving ODE..." << std::endl;
   auto t0 = clock::now();
