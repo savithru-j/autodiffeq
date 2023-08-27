@@ -4,7 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <autodiffeq/numerics/ADVar.hpp>
-#include <autodiffeq/solver/ForwardEuler.hpp>
+#include <autodiffeq/solver/RungeKutta.hpp>
 
 #include <complex>
 
@@ -48,7 +48,7 @@ public:
 
 
 //----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
+TEST( RK4, CoefficientSensitivityNumDeriv1 )
 {
   Array1D<double> sol0(3);
   sol0(0) = 10.0;
@@ -73,12 +73,12 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
+    RungeKutta<double> solver_p(ode_p, 4);
     auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
+    RungeKutta<double> solver_m(ode_m, 4);
     auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
@@ -108,7 +108,7 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
       sol_ad0(i) = sol0(i);
 
     TestODE<ADVar<double>> ode_ad(coeff_ad);
-    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+    RungeKutta<ADVar<double>> solver_ad(ode_ad, 4);
     auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
     // std::cout << sol_hist_ad(nt, 0).deriv() << ", " << sol_hist_ad(nt, 1).deriv() << ", " << sol_hist_ad(nt, 2).deriv() << std::endl;
@@ -121,7 +121,7 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
 }
 
 //----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
+TEST( RK4, CoefficientSensitivityNumDeriv3 )
 {
   Array1D<double> sol0(3);
   sol0(0) = 10.0;
@@ -146,12 +146,12 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
+    RungeKutta<double> solver_p(ode_p, 4);
     auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
+    RungeKutta<double> solver_m(ode_m, 4);
     auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
@@ -182,7 +182,7 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
       sol_ad0(i) = sol0(i);
 
     TestODE<ADVar<double>> ode_ad(coeff_ad);
-    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+    RungeKutta<ADVar<double>> solver_ad(ode_ad, 4);
     auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
     for (int id = 0; id < 3; ++id)
@@ -199,7 +199,7 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
 }
 
 //----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
+TEST( RK4, CoefficientSensitivityNumDeriv9 )
 {
   Array1D<double> sol0(3);
   sol0(0) = 10.0;
@@ -224,12 +224,12 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
+    RungeKutta<double> solver_p(ode_p, 4);
     auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
+    RungeKutta<double> solver_m(ode_m, 4);
     auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
@@ -258,7 +258,7 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
     sol_ad0(i) = sol0(i);
 
   TestODE<ADVar<double>> ode_ad(coeff_ad);
-  ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+  RungeKutta<ADVar<double>> solver_ad(ode_ad, 4);
   auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
   for (int id = 0; id < 9; ++id)
@@ -271,24 +271,24 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
 }
 
 //----------------------------------------------------------------------------//
-TEST( ForwardEuler, Accuracy )
+TEST( RK4, Accuracy )
 {
   TrigODE<double> ode;
-  ForwardEuler<double> solver(ode);
+  RungeKutta<double> solver(ode, 4);
 
   Array1D<double> sol0 = {1.0};
   
   double T = 10.0;
   double uT_exact = 3.0*std::sin(2.0*T) + std::cos(T);
 
-  int nt0 = 1000;
+  int nt0 = 100;
   auto sol_hist = solver.Solve(sol0, 0.0, T, nt0);
   double err0 = std::abs(sol_hist(nt0,0) - uT_exact);
 
-  int nt1 = 10000;
+  int nt1 = 1000;
   sol_hist = solver.Solve(sol0, 0.0, T, nt1);
   double err1 = std::abs(sol_hist(nt1,0) - uT_exact);
   double convergence_rate = std::log10(err1/err0) / std::log10((double)nt0/(double)nt1);
 
-  EXPECT_NEAR(convergence_rate, 1.0, 1e-2);
+  EXPECT_NEAR(convergence_rate, 4.0, 1e-2);
 }

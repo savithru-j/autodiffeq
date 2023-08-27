@@ -19,7 +19,9 @@ public:
                            int storage_stride = 1) : 
       sol_dim_(sol_dim), time_vec_(time_vec), storage_stride_(storage_stride)
   {
-    num_steps_stored_ = time_vec_.size() / storage_stride_ + 1;
+    num_steps_stored_ = time_vec_.size() / storage_stride_;
+    if (time_vec.size() % storage_stride_ != 0)
+      num_steps_stored_++;
     data_.resize(num_steps_stored_*sol_dim_, T(0));
   }
 
