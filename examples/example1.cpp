@@ -34,8 +34,10 @@ int main()
   sol0(1) = 7.0;
   
   TestODE<double> ode;
+  ForwardEuler<double> solver(ode);
+
   int nt = 100;
-  auto sol_hist = ForwardEuler::Solve(ode, sol0, 0, 1, nt);
+  auto sol_hist = solver.Solve(sol0, 0, 1, nt);
 
   std::cout << std::setprecision(5) << std::scientific;
   std::cout << sol_hist << std::endl;

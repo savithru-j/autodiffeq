@@ -57,11 +57,13 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    auto sol_hist_p = ForwardEuler::Solve(ode_p, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_p(ode_p);
+    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    auto sol_hist_m = ForwardEuler::Solve(ode_m, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_m(ode_m);
+    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
 
@@ -90,7 +92,8 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
       sol_ad0(i) = sol0(i);
 
     TestODE<ADVar<double>> ode_ad(coeff_ad);
-    auto sol_hist_ad = ForwardEuler::Solve(ode_ad, sol_ad0, ts, tf, nt);
+    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+    auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
     // std::cout << sol_hist_ad(nt, 0).deriv() << ", " << sol_hist_ad(nt, 1).deriv() << ", " << sol_hist_ad(nt, 2).deriv() << std::endl;
     EXPECT_NEAR(sol_hist_ad(nt, 0).deriv(), dsolfinal0_dcoeff(ic), tol);
@@ -127,11 +130,13 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    auto sol_hist_p = ForwardEuler::Solve(ode_p, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_p(ode_p);
+    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    auto sol_hist_m = ForwardEuler::Solve(ode_m, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_m(ode_m);
+    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
 
@@ -161,7 +166,8 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
       sol_ad0(i) = sol0(i);
 
     TestODE<ADVar<double>> ode_ad(coeff_ad);
-    auto sol_hist_ad = ForwardEuler::Solve(ode_ad, sol_ad0, ts, tf, nt);
+    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+    auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
     for (int id = 0; id < 3; ++id)
     {
@@ -202,11 +208,13 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
   {
     coeff(ic) += eps;
     TestODE<double> ode_p(coeff);
-    auto sol_hist_p = ForwardEuler::Solve(ode_p, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_p(ode_p);
+    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
     
     coeff(ic) -= 2*eps;
     TestODE<double> ode_m(coeff);
-    auto sol_hist_m = ForwardEuler::Solve(ode_m, sol0, ts, tf, nt);
+    ForwardEuler<double> solver_m(ode_m);
+    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
 
     coeff(ic) += eps;
 
@@ -234,7 +242,8 @@ TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
     sol_ad0(i) = sol0(i);
 
   TestODE<ADVar<double>> ode_ad(coeff_ad);
-  auto sol_hist_ad = ForwardEuler::Solve(ode_ad, sol_ad0, ts, tf, nt);
+  ForwardEuler<ADVar<double>> solver_ad(ode_ad);
+  auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
 
   for (int id = 0; id < 9; ++id)
   {

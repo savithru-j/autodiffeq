@@ -1,6 +1,6 @@
 #include <autodiffeq/numerics/ADVar.hpp>
 #include <autodiffeq/solver/ForwardEuler.hpp>
-#include <autodiffeq/solver/RK4.hpp>
+#include <autodiffeq/solver/RungeKutta.hpp>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
 #include <iostream>
 #include <iomanip>
@@ -46,16 +46,21 @@ int main()
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 7.5; //[m]
-  int nz = 15000*20;
-  int storage_stride = 10*20; //100;
+  int nz = 15000*2;//0;
+  int storage_stride = 100*2;//10*20; //100;
+
+  const int order = 4;
+  RungeKutta<Complex> solver(ode, order);
 
   std::cout << "Solving ODE..." << std::endl;
   auto t0 = clock::now();
-  auto sol_hist = RK4::Solve(ode, sol0, z_start, z_end, nz, storage_stride);
+  auto sol_hist = solver.Solve(sol0, z_start, z_end, nz, storage_stride);
   auto t1 = clock::now();
   auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() / 1000.0;
   std::cout << std::fixed << std::setprecision(3);
   std::cout << "Solved in " << time_elapsed << " secs." << std::endl;
+  std::cout << "Solution history size: " << sol_hist.GetNumStepsStored() 
+            << " steps stored, solution dim: " << sol_hist.GetSolutionSize() << std::endl;
 
   for (int mode = 0; mode < num_modes; ++mode)
   {
