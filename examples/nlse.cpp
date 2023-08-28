@@ -46,8 +46,8 @@ int main()
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 7.5; //[m]
-  int nz = 15000*2;//0;
-  int storage_stride = 100*2;//10*20; //100;
+  int nz = 15000*10;//0;
+  int storage_stride = 100*10;//10*20; //100;
 
   const int order = 4;
   RungeKutta<Complex> solver(ode, order);

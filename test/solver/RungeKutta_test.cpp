@@ -292,3 +292,26 @@ TEST( RK4, Accuracy )
 
   EXPECT_NEAR(convergence_rate, 4.0, 1e-2);
 }
+
+//----------------------------------------------------------------------------//
+TEST( DOPRI5, Accuracy )
+{
+  TrigODE<double> ode;
+  RungeKutta<double> solver(ode, 5);
+
+  Array1D<double> sol0 = {1.0};
+  
+  double T = 10.0;
+  double uT_exact = 3.0*std::sin(2.0*T) + std::cos(T);
+
+  int nt0 = 10;
+  auto sol_hist = solver.Solve(sol0, 0.0, T, nt0);
+  double err0 = std::abs(sol_hist(nt0,0) - uT_exact);
+
+  int nt1 = 100;
+  sol_hist = solver.Solve(sol0, 0.0, T, nt1);
+  double err1 = std::abs(sol_hist(nt1,0) - uT_exact);
+  double convergence_rate = std::log10(err1/err0) / std::log10((double)nt0/(double)nt1);
+
+  EXPECT_NEAR(convergence_rate, 5.0, 5e-2);
+}
