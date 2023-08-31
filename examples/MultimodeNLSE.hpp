@@ -53,7 +53,7 @@ public:
       const auto& beta2p = beta_mat_(2,p);
       const auto& beta3p = beta_mat_(3,p);
       const auto& beta4p = beta_mat_(4,p);
-      ComputeTimeDerivativesOrder2(p, sol, sol_tderiv);
+      ComputeTimeDerivativesOrder4(p, sol, sol_tderiv);
 
       for (int i = 0; i < num_time_points_; ++i) 
       {
@@ -134,8 +134,8 @@ public:
     const int max_deriv = tderiv.GetNumRows();
     assert(max_deriv >= 2 && max_deriv <= 4);
 
-    constexpr double inv_12dt = 1.0/(12.0*dt_);
-    constexpr double inv_12dt2 = inv_12dt / dt_;
+    const double inv_12dt = 1.0/(12.0*dt_);
+    const double inv_12dt2 = inv_12dt / dt_;
 
     //First derivative d/dt
     tderiv(0,0) = 0.0;
@@ -158,26 +158,31 @@ public:
       tderiv(1,i) = (-sol(offset+i-2) + 16.0*(sol(offset+i-1) + sol(offset+i+1))
                      - 30.0*sol(offset+i) - sol(offset+i+2))*inv_12dt2; //d^2/dt^2
     }
-#if 0 //TODO
+
     if (max_deriv >= 3)
     {
-      const double inv_dt3 = 1.0 / (dt_*dt_*dt_);
+      const double inv_8dt3 = 1.0 / (8.0*dt_*dt_*dt_);
 
       //Third derivative d^3/dt^3
       tderiv(2,0) = 0.0;
-      tderiv(2,1) = (0.5*sol(offset+3) - sol(offset+2) 
-                       + sol(offset) - 0.5*sol(offset+1))*inv_dt3;
-      tderiv(2,num_time_points_-2) = (0.5*sol(offset+num_time_points_-2) - sol(offset+num_time_points_-1) 
-                                        + sol(offset+num_time_points_-3) - 0.5*sol(offset+num_time_points_-4))*inv_dt3;
-      tderiv(2,num_time_points_-1) = 0.0;
+      tderiv(2,1) = (sol(offset+2) - 8.0*(sol(offset+1) - sol(offset+3)) 
+                     + 13.0*(sol(offset) - sol(offset+2)) - sol(offset+4))*inv_8dt3;
+      tderiv(2,2) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+4)) 
+                     + 13.0*(sol(offset+1) - sol(offset+3)) - sol(offset+5))*inv_8dt3;
 
-      for (int i = 2; i < num_time_points_-2; ++i)
+      for (int i = 3; i < num_time_points_-3; ++i)
       {
-        tderiv(2,i) = (0.5*sol(offset+i+2) - sol(offset+i+1) 
-                         + sol(offset+i-1) - 0.5*sol(offset+i-2))*inv_dt3; //d^3/dt^3
+        tderiv(2,i) = (sol(offset+i-3) - 8.0*(sol(offset+i-2) - sol(offset+i+2)) 
+                       + 13.0*(sol(offset+i-1) - sol(offset+i+1)) - sol(offset+i+3))*inv_8dt3; //d^3/dt^3
       }
-    }
 
+      tderiv(2,num_time_points_-3) = (sol(offset+num_time_points_-6) - 8.0*(sol(offset+num_time_points_-5) - sol(offset+num_time_points_-1)) 
+                                      + 13.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) - sol(offset+num_time_points_-2))*inv_8dt3;
+      tderiv(2,num_time_points_-2) = (sol(offset+num_time_points_-5) - 8.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) 
+                                      + 13.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) - sol(offset+num_time_points_-3))*inv_8dt3;
+      tderiv(2,num_time_points_-1) = 0.0;
+    }
+#if 0 //TODO
     if (max_deriv >= 4)
     {
       const double inv_dt4 = 1.0 / (dt_*dt_*dt_*dt_);
