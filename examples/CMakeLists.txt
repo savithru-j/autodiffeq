@@ -5,15 +5,17 @@ file(GLOB_RECURSE EXAMPLE_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
 # MESSAGE("Example files:" ${EXAMPLE_SRCS})
 
 foreach(exampleSrc ${EXAMPLE_SRCS})
-        #Extract the filename without an extension (NAME_WE)
-        get_filename_component(exampleName ${exampleSrc} NAME_WE)
+  #Extract the filename without an extension (NAME_WE)
+  get_filename_component(exampleName ${exampleSrc} NAME_WE)
 
-        #Add compile target
-        add_executable(${exampleName} ${exampleSrc})
+  #Add compile target
+  add_executable(${exampleName} ${exampleSrc})
 
-        #link to libraries and dependencies
-        target_link_libraries(${exampleName} PRIVATE ${PROJECT_NAME}::${PROJECT_NAME})
-
+  #link to libraries and dependencies
+  if (OpenMP_CXX_FOUND)
+    target_link_libraries(${exampleName} PRIVATE ${PROJECT_NAME}::${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX )
+  else()
+    target_link_libraries(${exampleName} PRIVATE ${PROJECT_NAME}::${PROJECT_NAME} )
+  endif()
+  
 endforeach()
-
-

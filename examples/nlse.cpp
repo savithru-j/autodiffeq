@@ -9,6 +9,10 @@
 
 #include "MultimodeNLSE.hpp"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 using namespace autodiffeq;
 
 int main()
@@ -16,6 +20,9 @@ int main()
   using Complex = std::complex<double>;
   using ComplexAD = ADVar<Complex>;
   using clock = std::chrono::high_resolution_clock;
+
+  int num_threads = omp_get_max_threads();
+  std::cout << "No. of CPU threads available: " << num_threads << std::endl;
 
   int num_modes = 2;
   int num_time_points = 8193; //8192;
@@ -46,8 +53,8 @@ int main()
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
   double z_start = 0, z_end = 7.5; //[m]
-  int nz = 15000*2;//0;
-  int storage_stride = 100*2;//10*20; //100;
+  int nz = 15000*20;//0;
+  int storage_stride = 100*20;//10*20; //100;
 
   const int order = 4;
   RungeKutta<Complex> solver(ode, order);

@@ -65,30 +65,37 @@ protected:
     Array1D<T> k1(sol_dim), k2(sol_dim), k3(sol_dim), k4(sol_dim);
     constexpr double inv6 = 1.0/6.0;
 
-    for (int step = 0; step < num_steps; ++step)
+    #pragma omp parallel
     {
-      double dt = time_vec(step+1) - time_vec(step);
-      double half_dt = 0.5*dt;
-      ode_.EvalRHS(sol, step, time, k1);
+      for (int step = 0; step < num_steps; ++step)
+      {
+        double dt = time_vec(step+1) - time_vec(step);
+        double half_dt = 0.5*dt;
+        ode_.EvalRHS(sol, step, time, k1);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + half_dt*k1(i);
-      ode_.EvalRHS(sol_tmp, step, time + half_dt, k2);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + half_dt*k1(i);
+        ode_.EvalRHS(sol_tmp, step, time + half_dt, k2);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + half_dt*k2(i);
-      ode_.EvalRHS(sol_tmp, step, time + half_dt, k3);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + half_dt*k2(i);
+        ode_.EvalRHS(sol_tmp, step, time + half_dt, k3);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*k3(i);
-      ode_.EvalRHS(sol_tmp, step, time + dt, k4);
-      
-      for (int i = 0; i < sol_dim; ++i)
-        sol(i) += inv6*dt*(k1(i) + 2.0*(k2(i) + k3(i)) + k4(i));
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*k3(i);
+        ode_.EvalRHS(sol_tmp, step, time + dt, k4);
+        
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol(i) += inv6*dt*(k1(i) + 2.0*(k2(i) + k3(i)) + k4(i));
 
-      if ((step+1) % storage_stride == 0)
-        sol_hist.SetSolution(step+1, sol);
-      time += dt;
+        if ((step+1) % storage_stride == 0)
+          sol_hist.SetSolution(step+1, sol);
+        time += dt;
+      }
     }
 
     return sol_hist;
@@ -126,38 +133,47 @@ protected:
 
     ode_.EvalRHS(sol, 0, time, k1);
 
-    for (int step = 0; step < num_steps; ++step)
+    #pragma omp parallel
     {
-      double dt = time_vec(step+1) - time_vec(step);
+      for (int step = 0; step < num_steps; ++step)
+      {
+        double dt = time_vec(step+1) - time_vec(step);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*a21*k1(i);
-      ode_.EvalRHS(sol_tmp, step, time + c2*dt, k2);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*a21*k1(i);
+        ode_.EvalRHS(sol_tmp, step, time + c2*dt, k2);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*(a31*k1(i) + a32*k2(i));
-      ode_.EvalRHS(sol_tmp, step, time + c3*dt, k3);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*(a31*k1(i) + a32*k2(i));
+        ode_.EvalRHS(sol_tmp, step, time + c3*dt, k3);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*(a41*k1(i) + a42*k2(i) + a43*k3(i));
-      ode_.EvalRHS(sol_tmp, step, time + c4*dt, k4);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*(a41*k1(i) + a42*k2(i) + a43*k3(i));
+        ode_.EvalRHS(sol_tmp, step, time + c4*dt, k4);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*(a51*k1(i) + a52*k2(i) + a53*k3(i) + a54*k4(i));
-      ode_.EvalRHS(sol_tmp, step, time + c5*dt, k5);
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*(a51*k1(i) + a52*k2(i) + a53*k3(i) + a54*k4(i));
+        ode_.EvalRHS(sol_tmp, step, time + c5*dt, k5);
 
-      for (int i = 0; i < sol_dim; ++i)
-        sol_tmp(i) = sol(i) + dt*(a61*k1(i) + a62*k2(i) + a63*k3(i) + a64*k4(i) + a65*k5(i));
-      ode_.EvalRHS(sol_tmp, step, time + dt, k6);
-      
-      for (int i = 0; i < sol_dim; ++i)
-        sol(i) += dt*(b1*k1(i) + b3*k3(i) + b4*k4(i) + b5*k5(i) + b6*k6(i));
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol_tmp(i) = sol(i) + dt*(a61*k1(i) + a62*k2(i) + a63*k3(i) + a64*k4(i) + a65*k5(i));
+        ode_.EvalRHS(sol_tmp, step, time + dt, k6);
+        
+        #pragma omp for
+        for (int i = 0; i < sol_dim; ++i)
+          sol(i) += dt*(b1*k1(i) + b3*k3(i) + b4*k4(i) + b5*k5(i) + b6*k6(i));
 
-      if ((step+1) % storage_stride == 0)
-        sol_hist.SetSolution(step+1, sol);
+        if ((step+1) % storage_stride == 0)
+          sol_hist.SetSolution(step+1, sol);
 
-      time += dt;
-      ode_.EvalRHS(sol, 0, time, k1); //Seventh stage of current time-step is the same as the first stage of next time-step
+        time += dt;
+        ode_.EvalRHS(sol, 0, time, k1); //Seventh stage of current time-step is the same as the first stage of next time-step
+      }
     }
 
     return sol_hist;

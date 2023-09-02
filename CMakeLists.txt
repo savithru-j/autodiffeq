@@ -15,6 +15,17 @@ MESSAGE( "CMAKE_BINARY_DIR:" ${CMAKE_BINARY_DIR} )
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake )
 
+OPTION(AUTODIFFEQ_USE_OPENMP "Compile with OpenMP" ON )
+IF(AUTODIFFEQ_USE_OPENMP)
+  find_package(OpenMP)
+  if (OpenMP_CXX_FOUND)
+    add_definitions(-DUSE_OPENMP)
+  else()
+    MESSAGE("OpenMP not found. Disabled option.")
+    set(AUTODIFFEQ_USE_OPENMP OFF CACHE BOOL "Compile with OpenMP" FORCE)
+  endif()
+ENDIF()
+
 INCLUDE(CheckCXXSourceCompiles)
 INCLUDE(CheckCXXSourceRuns)
 

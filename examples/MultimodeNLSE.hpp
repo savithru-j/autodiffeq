@@ -55,6 +55,7 @@ public:
       const auto& beta4p = beta_mat_(4,p);
       ComputeTimeDerivativesOrder4(p, sol, sol_tderiv);
 
+      #pragma omp for
       for (int i = 0; i < num_time_points_; ++i) 
       {
         rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i)
@@ -152,6 +153,7 @@ public:
     tderiv(1,num_time_points_-1) = (-2.0*sol(offset+num_time_points_-3) + 32.0*sol(offset+num_time_points_-2)
                                   - 30.0*sol(offset+num_time_points_-1))*inv_12dt2;
 
+    #pragma omp for
     for (int i = 2; i < num_time_points_-2; ++i)
     {
       tderiv(0,i) = (sol(offset+i-2) - 8.0*(sol(offset+i-1) - sol(offset+i+1)) - sol(offset+i+2))*inv_12dt; //d/dt
@@ -170,6 +172,7 @@ public:
       tderiv(2,2) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+4)) 
                      + 13.0*(sol(offset+1) - sol(offset+3)) - sol(offset+5))*inv_8dt3;
 
+      #pragma omp for
       for (int i = 3; i < num_time_points_-3; ++i)
       {
         tderiv(2,i) = (sol(offset+i-3) - 8.0*(sol(offset+i-2) - sol(offset+i+2)) 
@@ -182,7 +185,7 @@ public:
                                       + 13.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) - sol(offset+num_time_points_-3))*inv_8dt3;
       tderiv(2,num_time_points_-1) = 0.0;
     }
-#if 0 //TODO
+#if 1 //TODO
     if (max_deriv >= 4)
     {
       const double inv_dt4 = 1.0 / (dt_*dt_*dt_*dt_);
@@ -195,6 +198,7 @@ public:
       tderiv(3,num_time_points_-1) = (2.0*sol(offset+num_time_points_-3) - 8.0*sol(offset+num_time_points_-2) 
                                     + 6.0*sol(offset+num_time_points_-1))*inv_dt4;
 
+      #pragma omp for
       for (int i = 2; i < num_time_points_-2; ++i)
       {
         tderiv(3,i) = (sol(offset+i+2) - 4.0*sol(offset+i+1) + 6.0*sol(offset+i)  
@@ -217,6 +221,8 @@ public:
       const double A = std::sqrt(1665.0*Et(mode) / ((double)num_modes_ * t_FWHM(mode) * std::sqrt(M_PI)));
       const double k = -1.665*1.665/(2.0*t_FWHM(mode)*t_FWHM(mode));
       const double& tc = t_center(mode);
+
+      #pragma omp parallel for
       for (int j = 0; j < num_time_points_; ++j)
         sol(offset + j) = A * std::exp(k*(tvec_(j)-tc)*(tvec_(j)-tc));
     }
