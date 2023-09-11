@@ -58,15 +58,17 @@ protected:
     assert(num_steps >= 1);
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
-    sol_hist.SetSolution(0, sol0);
 
-    double time = time_vec(0);
     Array1D<T> sol(sol0), sol_tmp(sol_dim);
     Array1D<T> k1(sol_dim), k2(sol_dim), k3(sol_dim), k4(sol_dim);
-    constexpr double inv6 = 1.0/6.0;
 
     #pragma omp parallel
     {
+      sol_hist.SetSolution(0, sol0);
+
+      double time = time_vec(0);
+      constexpr double inv6 = 1.0/6.0;
+      
       for (int step = 0; step < num_steps; ++step)
       {
         double dt = time_vec(step+1) - time_vec(step);
@@ -131,10 +133,9 @@ protected:
 
     constexpr double c2 = 0.2, c3 = 0.3, c4 = 0.8, c5 = 8.0/9.0; //c6 = 1.0, c7 = 1.0;
 
-    ode_.EvalRHS(sol, 0, time, k1);
-
     #pragma omp parallel
     {
+      ode_.EvalRHS(sol, 0, time, k1);
       for (int step = 0; step < num_steps; ++step)
       {
         double dt = time_vec(step+1) - time_vec(step);

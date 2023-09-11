@@ -30,6 +30,9 @@ public:
       tvec_(step) = tvec_(step-1) + dt_;
 
     assert(beta_mat_.GetNumCols() == num_modes);
+
+    const int max_Ap_tderiv = beta_mat_.GetNumRows()-1;
+    sol_tderiv_.resize(max_Ap_tderiv, num_time_points_); //Stores the time-derivatives (e.g. d/dt, d^2/dt^2 ...) of a particular solution mode
   }
 
   int GetSolutionSize() const { return num_modes_*num_time_points_; }
@@ -37,32 +40,29 @@ public:
   void EvalRHS(const Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
   {
     constexpr std::complex<double> imag(0.0, 1.0);
-    const auto& beta00 = beta_mat_(0,0);
-    const auto& beta10 = beta_mat_(1,0);
-
-    const int max_Ap_tderiv = beta_mat_.GetNumRows()-1;
-    Array2D<T> sol_tderiv(max_Ap_tderiv, num_time_points_); //Stores the time-derivatives (e.g. d/dt, d^2/dt^2 ...) of a particular solution mode
+    const auto beta00 = beta_mat_(0,0);
+    const auto beta10 = beta_mat_(1,0);
     constexpr double inv6 = 1.0/6.0;
     constexpr double inv24 = 1.0/24.0;
 
     for (int p = 0; p < num_modes_; ++p)
     {
       const int offset = p*num_time_points_;
-      const auto& beta0p = beta_mat_(0,p);
-      const auto& beta1p = beta_mat_(1,p);
-      const auto& beta2p = beta_mat_(2,p);
-      const auto& beta3p = beta_mat_(3,p);
-      const auto& beta4p = beta_mat_(4,p);
-      ComputeTimeDerivativesOrder4(p, sol, sol_tderiv);
+      const auto beta0p = beta_mat_(0,p);
+      const auto beta1p = beta_mat_(1,p);
+      const auto beta2p = beta_mat_(2,p);
+      const auto beta3p = beta_mat_(3,p);
+      const auto beta4p = beta_mat_(4,p);
+      ComputeTimeDerivativesOrder4(p, sol, sol_tderiv_);
 
       #pragma omp for
       for (int i = 0; i < num_time_points_; ++i) 
       {
         rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i)
-                            -(beta1p - beta10)*sol_tderiv(0,i) //d/dt
-                      - imag* beta2p*0.5      *sol_tderiv(1,i) //d^2/dt^2
-                            + beta3p*inv6     *sol_tderiv(2,i) //d^3/dt^3
-                      + imag* beta4p*inv24    *sol_tderiv(3,i); //d^4/dt^4
+                            -(beta1p - beta10)*sol_tderiv_(0,i) //d/dt
+                      - imag* beta2p*0.5      *sol_tderiv_(1,i) //d^2/dt^2
+                            + beta3p*inv6     *sol_tderiv_(2,i) //d^3/dt^3
+                      + imag* beta4p*inv24    *sol_tderiv_(3,i); //d^4/dt^4
       }
     }
   }
@@ -75,15 +75,19 @@ public:
 
     const double inv_dt2 = 1.0 / (dt_*dt_);
 
-    //First derivative d/dt
-    tderiv(0,0) = 0.0;
-    tderiv(0,num_time_points_-1) = 0.0;
+    #pragma omp single
+    {
+      //First derivative d/dt
+      tderiv(0,0) = 0.0;
+      tderiv(0,num_time_points_-1) = 0.0;
 
-    //Second derivative d^2/dt^2
-    tderiv(1,0) = 2.0*(sol(offset+1) - sol(offset))*inv_dt2;
-    tderiv(1,num_time_points_-1) = 2.0*(sol(offset+num_time_points_-2) 
-                                      - sol(offset+num_time_points_-1))*inv_dt2;
+      //Second derivative d^2/dt^2
+      tderiv(1,0) = 2.0*(sol(offset+1) - sol(offset))*inv_dt2;
+      tderiv(1,num_time_points_-1) = 2.0*(sol(offset+num_time_points_-2) 
+                                        - sol(offset+num_time_points_-1))*inv_dt2;
+    }
 
+    #pragma omp for
     for (int i = 1; i < num_time_points_-1; ++i)
     {
       tderiv(0,i) = (sol(offset+i+1) - sol(offset+i-1))/(2.0*dt_); //d/dt
@@ -94,14 +98,18 @@ public:
     {
       const double inv_dt3 = 1.0 / (dt_*dt_*dt_);
 
-      //Third derivative d^3/dt^3
-      tderiv(2,0) = 0.0;
-      tderiv(2,1) = (0.5*sol(offset+3) - sol(offset+2) 
-                       + sol(offset) - 0.5*sol(offset+1))*inv_dt3;
-      tderiv(2,num_time_points_-2) = (0.5*sol(offset+num_time_points_-2) - sol(offset+num_time_points_-1) 
-                                        + sol(offset+num_time_points_-3) - 0.5*sol(offset+num_time_points_-4))*inv_dt3;
-      tderiv(2,num_time_points_-1) = 0.0;
+      #pragma omp single
+      {
+        //Third derivative d^3/dt^3
+        tderiv(2,0) = 0.0;
+        tderiv(2,1) = (0.5*sol(offset+3) - sol(offset+2) 
+                        + sol(offset) - 0.5*sol(offset+1))*inv_dt3;
+        tderiv(2,num_time_points_-2) = (0.5*sol(offset+num_time_points_-2) - sol(offset+num_time_points_-1) 
+                                          + sol(offset+num_time_points_-3) - 0.5*sol(offset+num_time_points_-4))*inv_dt3;
+        tderiv(2,num_time_points_-1) = 0.0;
+      }
 
+      #pragma omp for
       for (int i = 2; i < num_time_points_-2; ++i)
       {
         tderiv(2,i) = (0.5*sol(offset+i+2) - sol(offset+i+1) 
@@ -113,14 +121,18 @@ public:
     {
       const double inv_dt4 = 1.0 / (dt_*dt_*dt_*dt_);
 
-      //Fourth derivative d^4/dt^4
-      tderiv(3,0) = (2.0*sol(offset+2) - 8.0*sol(offset+1) + 6.0*sol(offset))*inv_dt4;
-      tderiv(3,1) = (sol(offset+3) - 4.0*sol(offset+2) + 7.0*sol(offset+1) - 4.0*sol(offset))*inv_dt4;
-      tderiv(3,num_time_points_-2) = (- 4.0*sol(offset+num_time_points_-1) + 7.0*sol(offset+num_time_points_-2)  
-                                      - 4.0*sol(offset+num_time_points_-3) +     sol(offset+num_time_points_-4))*inv_dt4;
-      tderiv(3,num_time_points_-1) = (2.0*sol(offset+num_time_points_-3) - 8.0*sol(offset+num_time_points_-2) 
-                                    + 6.0*sol(offset+num_time_points_-1))*inv_dt4;
+      #pragma omp single
+      {
+        //Fourth derivative d^4/dt^4
+        tderiv(3,0) = (2.0*sol(offset+2) - 8.0*sol(offset+1) + 6.0*sol(offset))*inv_dt4;
+        tderiv(3,1) = (sol(offset+3) - 4.0*sol(offset+2) + 7.0*sol(offset+1) - 4.0*sol(offset))*inv_dt4;
+        tderiv(3,num_time_points_-2) = (- 4.0*sol(offset+num_time_points_-1) + 7.0*sol(offset+num_time_points_-2)  
+                                        - 4.0*sol(offset+num_time_points_-3) +     sol(offset+num_time_points_-4))*inv_dt4;
+        tderiv(3,num_time_points_-1) = (2.0*sol(offset+num_time_points_-3) - 8.0*sol(offset+num_time_points_-2) 
+                                      + 6.0*sol(offset+num_time_points_-1))*inv_dt4;
+      }
 
+      #pragma omp for
       for (int i = 2; i < num_time_points_-2; ++i)
       {
         tderiv(3,i) = (sol(offset+i+2) - 4.0*sol(offset+i+1) + 6.0*sol(offset+i)  
@@ -138,20 +150,23 @@ public:
     const double inv_12dt = 1.0/(12.0*dt_);
     const double inv_12dt2 = inv_12dt / dt_;
 
-    //First derivative d/dt
-    tderiv(0,0) = 0.0;
-    tderiv(0,1) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+2)) - sol(offset+3))*inv_12dt;
-    tderiv(0,num_time_points_-2) = (sol(offset+num_time_points_-4) - 8.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) 
-                                   -sol(offset+num_time_points_-2))*inv_12dt;
-    tderiv(0,num_time_points_-1) = 0.0;
+    #pragma omp single
+    {
+      //First derivative d/dt
+      tderiv(0,0) = 0.0;
+      tderiv(0,1) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+2)) - sol(offset+3))*inv_12dt;
+      tderiv(0,num_time_points_-2) = (sol(offset+num_time_points_-4) - 8.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) 
+                                    -sol(offset+num_time_points_-2))*inv_12dt;
+      tderiv(0,num_time_points_-1) = 0.0;
 
-    //Second derivative d^2/dt^2
-    tderiv(1,0) = (-2.0*sol(offset+2) + 32.0*sol(offset+1) - 30.0*sol(offset))*inv_12dt2;
-    tderiv(1,1) = (-31.0*sol(offset+1) + 16.0*(sol(offset) + sol(offset+2)) - sol(offset+3))*inv_12dt2;
-    tderiv(1,num_time_points_-2) = (-sol(offset+num_time_points_-4) + 16.0*(sol(offset+num_time_points_-3) + sol(offset+num_time_points_-1))
-                                    - 31.0*sol(offset+num_time_points_-2))*inv_12dt2;
-    tderiv(1,num_time_points_-1) = (-2.0*sol(offset+num_time_points_-3) + 32.0*sol(offset+num_time_points_-2)
-                                  - 30.0*sol(offset+num_time_points_-1))*inv_12dt2;
+      //Second derivative d^2/dt^2
+      tderiv(1,0) = (-2.0*sol(offset+2) + 32.0*sol(offset+1) - 30.0*sol(offset))*inv_12dt2;
+      tderiv(1,1) = (-31.0*sol(offset+1) + 16.0*(sol(offset) + sol(offset+2)) - sol(offset+3))*inv_12dt2;
+      tderiv(1,num_time_points_-2) = (-sol(offset+num_time_points_-4) + 16.0*(sol(offset+num_time_points_-3) + sol(offset+num_time_points_-1))
+                                      - 31.0*sol(offset+num_time_points_-2))*inv_12dt2;
+      tderiv(1,num_time_points_-1) = (-2.0*sol(offset+num_time_points_-3) + 32.0*sol(offset+num_time_points_-2)
+                                    - 30.0*sol(offset+num_time_points_-1))*inv_12dt2;
+    }
 
     #pragma omp for
     for (int i = 2; i < num_time_points_-2; ++i)
@@ -166,11 +181,14 @@ public:
       const double inv_8dt3 = 1.0 / (8.0*dt_*dt_*dt_);
 
       //Third derivative d^3/dt^3
-      tderiv(2,0) = 0.0;
-      tderiv(2,1) = (sol(offset+2) - 8.0*(sol(offset+1) - sol(offset+3)) 
-                     + 13.0*(sol(offset) - sol(offset+2)) - sol(offset+4))*inv_8dt3;
-      tderiv(2,2) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+4)) 
-                     + 13.0*(sol(offset+1) - sol(offset+3)) - sol(offset+5))*inv_8dt3;
+      #pragma omp single
+      {
+        tderiv(2,0) = 0.0;
+        tderiv(2,1) = (sol(offset+2) - 8.0*(sol(offset+1) - sol(offset+3)) 
+                      + 13.0*(sol(offset) - sol(offset+2)) - sol(offset+4))*inv_8dt3;
+        tderiv(2,2) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+4)) 
+                      + 13.0*(sol(offset+1) - sol(offset+3)) - sol(offset+5))*inv_8dt3;
+      }
 
       #pragma omp for
       for (int i = 3; i < num_time_points_-3; ++i)
@@ -179,33 +197,51 @@ public:
                        + 13.0*(sol(offset+i-1) - sol(offset+i+1)) - sol(offset+i+3))*inv_8dt3; //d^3/dt^3
       }
 
-      tderiv(2,num_time_points_-3) = (sol(offset+num_time_points_-6) - 8.0*(sol(offset+num_time_points_-5) - sol(offset+num_time_points_-1)) 
-                                      + 13.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) - sol(offset+num_time_points_-2))*inv_8dt3;
-      tderiv(2,num_time_points_-2) = (sol(offset+num_time_points_-5) - 8.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) 
-                                      + 13.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) - sol(offset+num_time_points_-3))*inv_8dt3;
-      tderiv(2,num_time_points_-1) = 0.0;
-    }
-#if 1 //TODO
-    if (max_deriv >= 4)
-    {
-      const double inv_dt4 = 1.0 / (dt_*dt_*dt_*dt_);
-
-      //Fourth derivative d^4/dt^4
-      tderiv(3,0) = (2.0*sol(offset+2) - 8.0*sol(offset+1) + 6.0*sol(offset))*inv_dt4;
-      tderiv(3,1) = (sol(offset+3) - 4.0*sol(offset+2) + 7.0*sol(offset+1) - 4.0*sol(offset))*inv_dt4;
-      tderiv(3,num_time_points_-2) = (- 4.0*sol(offset+num_time_points_-1) + 7.0*sol(offset+num_time_points_-2)  
-                                      - 4.0*sol(offset+num_time_points_-3) +     sol(offset+num_time_points_-4))*inv_dt4;
-      tderiv(3,num_time_points_-1) = (2.0*sol(offset+num_time_points_-3) - 8.0*sol(offset+num_time_points_-2) 
-                                    + 6.0*sol(offset+num_time_points_-1))*inv_dt4;
-
-      #pragma omp for
-      for (int i = 2; i < num_time_points_-2; ++i)
+      #pragma omp single
       {
-        tderiv(3,i) = (sol(offset+i+2) - 4.0*sol(offset+i+1) + 6.0*sol(offset+i)  
-                 - 4.0*sol(offset+i-1) +     sol(offset+i-2))*inv_dt4; //d^4/dt^4
+        tderiv(2,num_time_points_-3) = (sol(offset+num_time_points_-6) - 8.0*(sol(offset+num_time_points_-5) - sol(offset+num_time_points_-1)) 
+                                        + 13.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) - sol(offset+num_time_points_-2))*inv_8dt3;
+        tderiv(2,num_time_points_-2) = (sol(offset+num_time_points_-5) - 8.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) 
+                                        + 13.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) - sol(offset+num_time_points_-3))*inv_8dt3;
+        tderiv(2,num_time_points_-1) = 0.0;
       }
     }
-#endif
+
+    if (max_deriv >= 4)
+    {
+      const double inv_6dt4 = 1.0 / (6.0*dt_*dt_*dt_*dt_);
+
+      //Fourth derivative d^4/dt^4
+      #pragma omp single
+      {
+        tderiv(3,0) = (- 2.0*sol(offset+3) + 24.0*sol(offset+2) - 78.0*sol(offset+1) + 56.0*sol(offset))*inv_6dt4;
+        tderiv(3,1) = (-      (sol(offset+2) + sol(offset+4)) + 12.0*(sol(offset+1) + sol(offset+3))
+                        - 39.0*(sol(offset) + sol(offset+2)) + 56.0* sol(offset+1))*inv_6dt4;
+        tderiv(3,2) = (-      (sol(offset+1) + sol(offset+5)) + 12.0*(sol(offset) + sol(offset+4))
+                       - 39.0*(sol(offset+1) + sol(offset+3)) + 56.0* sol(offset+2))*inv_6dt4;
+      }
+
+      #pragma omp for
+      for (int i = 3; i < num_time_points_-3; ++i)
+      {
+        tderiv(3,i) = (-      (sol(offset+i-3) + sol(offset+i+3)) + 12.0*(sol(offset+i-2) + sol(offset+i+2))
+                       - 39.0*(sol(offset+i-1) + sol(offset+i+1)) + 56.0* sol(offset+i))*inv_6dt4; //d^4/dt^4
+      }
+
+      #pragma omp single
+      {                     
+        tderiv(3,num_time_points_-3) = (-      (sol(offset+num_time_points_-6) + sol(offset+num_time_points_-2)) 
+                                        + 12.0*(sol(offset+num_time_points_-5) + sol(offset+num_time_points_-1))
+                                        - 39.0*(sol(offset+num_time_points_-4) + sol(offset+num_time_points_-2)) 
+                                        + 56.0* sol(offset+num_time_points_-3))*inv_6dt4;
+        tderiv(3,num_time_points_-2) = (-      (sol(offset+num_time_points_-5) + sol(offset+num_time_points_-3)) 
+                                        + 12.0*(sol(offset+num_time_points_-4) + sol(offset+num_time_points_-2))
+                                        - 39.0*(sol(offset+num_time_points_-3) + sol(offset+num_time_points_-1)) 
+                                        + 56.0* sol(offset+num_time_points_-2))*inv_6dt4;
+        tderiv(3,num_time_points_-1) = (-  2.0*sol(offset+num_time_points_-4) + 24.0*sol(offset+num_time_points_-3)
+                                        - 78.0*sol(offset+num_time_points_-2) + 56.0*sol(offset+num_time_points_-1))*inv_6dt4;
+      }
+    }
   }
 
   Array1D<T> GetInitialSolutionGaussian(const Array1D<double>& Et, const Array1D<double>& t_FWHM, const Array1D<double>& t_center) 
@@ -235,6 +271,7 @@ protected:
   const double tmin_, tmax_, dt_;
   Array1D<double> tvec_;
   const Array2D<double>& beta_mat_;
+  Array2D<T> sol_tderiv_;
 };
 
 }

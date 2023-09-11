@@ -37,6 +37,8 @@ public:
     assert(step >= 0 && step < (int) time_vec_.size());
     assert(step % storage_stride_ == 0);
     const int offset = (step/storage_stride_)*sol_dim_;
+
+    #pragma omp for
     for (int m = 0; m < sol_dim_; ++m)
       sol[m] = data_[offset + m];
   }
@@ -46,6 +48,8 @@ public:
     assert(step >= 0 && step < (int) time_vec_.size());
     assert(step % storage_stride_ == 0);
     const int offset = (step/storage_stride_)*sol_dim_;
+
+    #pragma omp for
     for (int m = 0; m < sol_dim_; ++m)
       data_[offset + m] = sol[m];
   }
