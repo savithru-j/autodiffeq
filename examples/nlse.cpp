@@ -2,6 +2,8 @@
 #include <autodiffeq/solver/ForwardEuler.hpp>
 #include <autodiffeq/solver/RungeKutta.hpp>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
+#include <autodiffeq/linearalgebra/Array3D.hpp>
+#include <autodiffeq/linearalgebra/Array4D.hpp>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -40,8 +42,21 @@ int main()
     for (int j = 0; j < num_modes; ++j)
       beta_mat(i,j) = beta_mat_5x8(i,j);
 
+  Array4D<double> Sk(2,2,2,2, {4.9840660e+09, 0.0000000e+00, 0.0000000e+00, 2.5202004e+09,
+                               0.0000000e+00, 2.5202004e+09, 2.5202004e+09, 0.0000000e+00,
+                               0.0000000e+00, 2.5202004e+09, 2.5202004e+09, 0.0000000e+00,
+                               2.5202004e+09, 0.0000000e+00, 0.0000000e+00, 3.7860385e+09});
+  std::cout << Sk << std::endl;
+
   double tmin = -40, tmax = 40;
-  MultimodeNLSE<Complex> ode(num_modes, num_time_points, tmin, tmax, beta_mat);
+  double n2 = 2.3e-20;
+  double omega0 = 1.2153e3;
+  bool is_self_steepening = false;
+  bool is_nonlinear = true;
+
+  MultimodeNLSE<Complex> ode(num_modes, num_time_points, tmin, tmax, beta_mat,
+                             n2, omega0, Sk, is_self_steepening, is_nonlinear);
+  // MultimodeNLSE<Complex> ode(num_modes, num_time_points, tmin, tmax, beta_mat);
 
   Array1D<double> Et = {9.0, 8.0}; //nJ (in range [6,30] nJ)
   Array1D<double> t_FWHM = {0.1, 0.2}; //ps (in range [0.05, 0.5] ps)
@@ -51,13 +66,13 @@ int main()
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  // double z_start = 0, z_end = 7.5; //[m]
-  // int nz = 15000*20;
-  // int storage_stride = 100*20;
-
-  double z_start = 0, z_end = 1.0; //[m]
-  int nz = 2000*20;
+  double z_start = 0, z_end = 7.5; //[m]
+  int nz = 15000*20;
   int storage_stride = 100*20;
+
+  // double z_start = 0, z_end = 1.0; //[m]
+  // int nz = 2000*20;
+  // int storage_stride = 100*20;
 
   const int order = 4;
   RungeKutta<Complex> solver(ode, order);

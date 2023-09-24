@@ -21,8 +21,15 @@ public:
 
   MultimodeNLSE(const int num_modes, const int num_time_points, 
                 const double tmin, const double tmax, const Array2D<double>& beta_mat) :
+    MultimodeNLSE(num_modes, num_time_points, tmin, tmax, beta_mat, 0.0, 0.0, {}, false, false) {}
+
+  MultimodeNLSE(const int num_modes, const int num_time_points, 
+                const double tmin, const double tmax, const Array2D<double>& beta_mat,
+                const double n2, const double omega0, const Array4D<double>& Sk, 
+                const bool is_self_steepening, const bool is_nonlinear = true) : 
     num_modes_(num_modes), num_time_points_(num_time_points), tmin_(tmin), tmax_(tmax),
-    dt_((tmax_ - tmin_) / (double) (num_time_points_-1)), beta_mat_(beta_mat)
+    dt_((tmax_ - tmin_) / (double) (num_time_points_-1)), beta_mat_(beta_mat), n2_(n2),
+    omega0_(omega0), Sk_(Sk), is_self_steepening_(is_self_steepening), is_nonlinear_(is_nonlinear)
   {
     tvec_.resize(num_time_points_);
     tvec_(0) = tmin_;
@@ -30,9 +37,19 @@ public:
       tvec_(step) = tvec_(step-1) + dt_;
 
     assert(beta_mat_.GetNumCols() == num_modes);
+    if (is_nonlinear_)
+      for (int d = 0; d < 4; ++d)
+        assert(Sk.GetDim(d) == num_modes);
 
     const int max_Ap_tderiv = beta_mat_.GetNumRows()-1;
     sol_tderiv_.resize(max_Ap_tderiv, num_time_points_); //Stores the time-derivatives (e.g. d/dt, d^2/dt^2 ...) of a particular solution mode
+
+    if (is_nonlinear_)
+    {
+      kerr_.resize(num_time_points_);
+      if (is_self_steepening_)
+        kerr_tderiv_.resize(num_time_points_);
+    }
   }
 
   int GetSolutionSize() const { return num_modes_*num_time_points_; }
@@ -44,6 +61,7 @@ public:
     const auto beta10 = beta_mat_(1,0);
     constexpr double inv6 = 1.0/6.0;
     constexpr double inv24 = 1.0/24.0;
+    const std::complex<double> j_n_omega0_invc(0.0, n2_*omega0_/c_);
 
     for (int p = 0; p < num_modes_; ++p)
     {
@@ -53,7 +71,7 @@ public:
       const auto beta2p = beta_mat_(2,p);
       const auto beta3p = beta_mat_(3,p);
       const auto beta4p = beta_mat_(4,p);
-      ComputeTimeDerivativesOrder4(p, sol, sol_tderiv_);
+      ComputeTimeDerivativesOrder2(p, sol, sol_tderiv_);
 
       #pragma omp for
       for (int i = 0; i < num_time_points_; ++i) 
@@ -64,6 +82,46 @@ public:
                             + beta3p*inv6     *sol_tderiv_(2,i) //d^3/dt^3
                       + imag* beta4p*inv24    *sol_tderiv_(3,i); //d^4/dt^4
       }
+
+      if (is_nonlinear_)
+      {
+        ComputeKerrNonlinearity(p, sol);
+        if (is_self_steepening_)
+        {
+
+        }
+        else
+        {
+          #pragma omp for
+          for (int i = 0; i < num_time_points_; ++i) 
+          {
+            rhs(offset+i) += j_n_omega0_invc*kerr_(i);
+          }
+        }
+      }
+    }
+  }
+
+  void ComputeKerrNonlinearity(const int p, const Array1D<T>& sol)
+  {
+    #pragma omp for
+    for (int i = 0; i < num_time_points_; ++i) 
+    {
+      T sum = 0.0;
+      for (int q = 0; q < num_modes_; ++q)
+      {
+        const auto& Aq = sol(q*num_time_points_ + i);
+        for (int r = 0; r < num_modes_; ++r)
+        {
+          const auto& Ar = sol(r*num_time_points_ + i);
+          for (int s = 0; s < num_modes_; ++s)
+          {
+            const auto& As = sol(s*num_time_points_ + i);
+            sum += Sk_(p,q,r,s)*Aq*Ar*std::conj(As);
+          }
+        }
+      }
+      kerr_(i) = sum;
     }
   }
 
@@ -271,7 +329,15 @@ protected:
   const double tmin_, tmax_, dt_;
   Array1D<double> tvec_;
   const Array2D<double>& beta_mat_;
+  const double n2_; //[m^2 / W]
+  const double omega0_; //[rad/ps]
+  const Array4D<double>& Sk_; //Kerr nonlinearity tensor
+  static constexpr double c_ = 2.99792458e-4; //[m/ps]
+  const bool is_self_steepening_ = false;
+  const bool is_nonlinear_ = false;
   Array2D<T> sol_tderiv_;
+  Array1D<T> kerr_;
+  Array1D<T> kerr_tderiv_;
 };
 
 }
