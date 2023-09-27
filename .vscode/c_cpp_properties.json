@@ -7,7 +7,7 @@
                 "${workspaceFolder}",
                 "${workspaceFolder}/externals/googletest/googletest/include"
             ],
-            "defines": ["USE_OPENMP=1"],
+            "defines": ["ENABLE_OPENMP=1"],
             "compilerPath": "/usr/bin/gcc",
             "cStandard": "gnu17",
             "intelliSenseMode": "linux-gcc-x64",

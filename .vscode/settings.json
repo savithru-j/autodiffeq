@@ -69,6 +69,15 @@
         "typeinfo": "cpp",
         "variant": "cpp",
         "cassert": "cpp",
-        "cinttypes": "cpp"
+        "cinttypes": "cpp",
+        "bitset": "cpp",
+        "__nullptr": "cpp",
+        "__hash_table": "cpp",
+        "__split_buffer": "cpp",
+        "queue": "cpp",
+        "codecvt": "cpp",
+        "__bit_reference": "cpp",
+        "filesystem": "cpp",
+        "__tuple": "cpp"
     },
 }

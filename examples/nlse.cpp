@@ -11,7 +11,7 @@
 
 #include "MultimodeNLSE.hpp"
 
-#ifdef USE_OPENMP
+#ifdef ENABLE_OPENMP
 #include <omp.h>
 #endif
 
