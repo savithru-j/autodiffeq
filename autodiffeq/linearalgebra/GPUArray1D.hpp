@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <ostream>
+#include <autodiffeq/cuda/cudaCheckError.h>
 
 namespace autodiffeq
 {
@@ -18,7 +19,7 @@ public:
   GPUArray1D() = default;
   GPUArray1D(std::size_t m) : size_(m)
   {
-    cudaMalloc(&d_data_, size_*sizeof(T));
+    cudaCheckError(cudaMalloc(&d_data_, size_*sizeof(T)));
   }
 
   GPUArray1D(std::size_t m, const T& val)
@@ -43,7 +44,7 @@ public:
   ~GPUArray1D() 
   {
     if (d_data_)
-      cudaFree(d_data_);
+      cudaCheckError(cudaFree(d_data_));
   }
 
   inline std::size_t m() const { return size_; }
@@ -58,15 +59,15 @@ public:
   inline void ResizeAndCopy(const std::vector<T>& h_data)
   {
     if (d_data_)
-      cudaFree(d_data_);
+      cudaCheckError(cudaFree(d_data_));
     size_ = h_data.size();
-    cudaMalloc(&d_data_, size_*sizeof(T));
-    cudaMemcpy(d_data_, h_data.data(), size_*sizeof(T), cudaMemcpyHostToDevice);
+    cudaCheckError(cudaMalloc(&d_data_, size_*sizeof(T)));
+    cudaCheckError(cudaMemcpy(d_data_, h_data.data(), size_*sizeof(T), cudaMemcpyHostToDevice));
   }
 
   inline void clear() { 
     if (d_data_)
-      cudaFree(d_data_);
+      cudaCheckError(cudaFree(d_data_));
     size_ = 0;
     d_data_ = nullptr;
   }
@@ -79,7 +80,7 @@ public:
     if (size_ > 0)
     {
       std::vector<T> data(size_, val);
-      cudaMemcpy(d_data_, data.data(), size_*sizeof(T), cudaMemcpyHostToDevice);
+      cudaCheckError(cudaMemcpy(d_data_, data.data(), size_*sizeof(T), cudaMemcpyHostToDevice));
     }
   }
 
@@ -93,7 +94,7 @@ inline std::ostream& operator<<(std::ostream& os, const GPUArray1D<T>& v)
 {
   std::size_t m = v.size();
   std::vector<T> vh(m);
-  cudaMemcpy(vh.data(), v.data(), m*sizeof(T), cudaMemcpyDeviceToHost);
+  cudaCheckError(cudaMemcpy(vh.data(), v.data(), m*sizeof(T), cudaMemcpyDeviceToHost));
   for (int i = 0; i < m-1; ++i)
     os << vh[i] << ", ";
   os << vh.back();

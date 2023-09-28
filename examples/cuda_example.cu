@@ -14,6 +14,7 @@ void saxpy(int n, float a, float *x, float *y)
 
 int main(void)
 {
+#if 0
   int N = 1024;
   float *x, *y, *d_x, *d_y;
   x = (float*)malloc(N*sizeof(float));
@@ -52,6 +53,7 @@ int main(void)
   cudaFree(d_y);
   free(x);
   free(y);
+#endif
 
   GPUArray1D<double> v0(10, 5.2);
   std::cout << v0 << std::endl;

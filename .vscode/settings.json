@@ -78,6 +78,7 @@
         "codecvt": "cpp",
         "__bit_reference": "cpp",
         "filesystem": "cpp",
-        "__tuple": "cpp"
+        "__tuple": "cpp",
+        "climits": "cpp"
     },
 }
