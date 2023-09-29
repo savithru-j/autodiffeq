@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <iostream>
-#include <autodiffeq/linearalgebra/GPUArray1D.hpp>
+#include <autodiffeq/linearalgebra/GPUArray1D.cuh>
 
 using namespace autodiffeq;
 

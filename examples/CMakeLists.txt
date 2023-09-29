@@ -2,6 +2,11 @@ INCLUDE( ${CMAKE_SOURCE_DIR}/cmake/ForceOutOfSource.cmake ) #This must be the fi
 
 #Get all test files
 file(GLOB_RECURSE EXAMPLE_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cpp)
+
+if (AUTODIFFEQ_ENABLE_CUDA)
+  file(GLOB_RECURSE EXAMPLE_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cu)
+  list (APPEND EXAMPLE_SRCS ${EXAMPLE_CUDA_SRCS})
+endif()
 # MESSAGE("Example files:" ${EXAMPLE_SRCS})
 
 foreach(exampleSrc ${EXAMPLE_SRCS})
@@ -19,22 +24,3 @@ foreach(exampleSrc ${EXAMPLE_SRCS})
   endif()
   
 endforeach()
-
-if (AUTODIFFEQ_ENABLE_CUDA)
-  file(GLOB_RECURSE EXAMPLE_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cu)
-  foreach(exampleSrc ${EXAMPLE_CUDA_SRCS})
-    #Extract the filename without an extension (NAME_WE)
-    get_filename_component(exampleName ${exampleSrc} NAME_WE)
-
-    #Add compile target
-    add_executable(${exampleName} ${exampleSrc})
-
-    #link to libraries and dependencies
-    if (OpenMP_CXX_FOUND)
-      target_link_libraries(${exampleName} PRIVATE ${PROJECT_NAME}::${PROJECT_NAME} PRIVATE OpenMP::OpenMP_CXX )
-    else()
-      target_link_libraries(${exampleName} PRIVATE ${PROJECT_NAME}::${PROJECT_NAME} )
-    endif()
-    
-  endforeach()
-endif()

@@ -62,6 +62,9 @@ public:
 
   inline void SetValue(const T& val) { std::fill(data_.begin(), data_.end(), val); }
 
+  inline const T* data() const { return data_.data(); }
+  inline T* data() { return data_.data(); }
+
   inline const std::vector<T>& GetDataVector() const { return data_; }
   inline std::vector<T>& GetDataVector() { return data_; }
 

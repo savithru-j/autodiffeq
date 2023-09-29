@@ -2,6 +2,8 @@
 // Licensed under the MIT License (http://opensource.org/licenses/MIT)
 // Copyright (c) 2023, Savithru Jayasinghe
 
+#pragma once
+
 #include <cuda_runtime.h>
 #include <iostream>
 

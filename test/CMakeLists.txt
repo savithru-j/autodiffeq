@@ -2,6 +2,11 @@ INCLUDE( ${CMAKE_SOURCE_DIR}/cmake/ForceOutOfSource.cmake ) #This must be the fi
 
 #Get all test files
 file(GLOB_RECURSE TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *_test.cpp)
+
+if (AUTODIFFEQ_ENABLE_CUDA)
+  file(GLOB_RECURSE TEST_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cu)
+  list (APPEND TEST_SRCS ${TEST_CUDA_SRCS})
+endif()
 # MESSAGE("Test files:" ${TEST_SRCS})
 
 ADD_CUSTOM_TARGET( test_build )
