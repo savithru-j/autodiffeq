@@ -150,11 +150,7 @@ protected:
 template<class T>
 inline std::ostream& operator<<(std::ostream& os, const GPUArray1D<T>& v)
 {
-  Array1D<T> vh = v.CopyToHost();
-  int m = (int) vh.size();
-  for (int i = 0; i < m-1; ++i)
-    os << vh[i] << ", ";
-  os << vh.back();
+  os << v.CopyToHost();
   return os;
 }
 

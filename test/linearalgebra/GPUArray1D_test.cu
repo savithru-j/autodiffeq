@@ -54,6 +54,20 @@ TEST( GPUArray1D, Constructor )
     GPUArray1D<int> vec2 = {};
     EXPECT_EQ(vec2.size(), 0u);
   }
+
+  {
+    Array1D<int> vec_cpu = {-2, 3, 6, 42, -4, 8};
+    GPUArray1D<int> vec(vec_cpu);
+    auto vec_h = vec.CopyToHost();
+    EXPECT_EQ(vec.size(), 6u);
+    EXPECT_EQ(vec_h.size(), 6u);
+    EXPECT_EQ(vec_h[0], -2);
+    EXPECT_EQ(vec_h[1], 3);
+    EXPECT_EQ(vec_h[2], 6);
+    EXPECT_EQ(vec_h[3], 42);
+    EXPECT_EQ(vec_h[4], -4);
+    EXPECT_EQ(vec_h[5], 8);
+  }
 }
 
 //----------------------------------------------------------------------------//
@@ -61,7 +75,8 @@ TEST( GPUArray1D, Add )
 {
   int N = 1024;
   GPUArray1D<double> x(N, 5.0);
-  GPUArray1D<double> y(N, -2.0);
+  GPUArray1D<double> y(N);
+  y.SetValue(-2.0);
   GPUArray1D<double> z(N);
 
   add<<<(N+255)/256, 256>>>(x.GetDeviceArray(), y.GetDeviceArray(), 

@@ -16,8 +16,8 @@ class Array1D
 public:
 
   Array1D() = default;
-  Array1D(int m) : data_(m) {}
-  Array1D(int m, const T& val) : data_(m, val) {}
+  Array1D(std::size_t m) : data_(m) {}
+  Array1D(std::size_t m, const T& val) : data_(m, val) {}
 
   Array1D(const std::vector<T>& v) : data_(v) {}
 
@@ -32,7 +32,6 @@ public:
     }
   }
 
-  inline int m() const { return data_.size(); }
   inline std::size_t size() const { return data_.size(); }
 
   inline const T& operator()(int i) const { return data_[i]; }
@@ -49,7 +48,7 @@ public:
   inline typename std::vector<T>::const_iterator cbegin() const { return data_.cbegin(); }
   inline typename std::vector<T>::const_iterator cend() const { return data_.cend(); }
 
-  inline void resize(int m, const T& val = 0.0) { data_.resize(m, val); }
+  inline void resize(std::size_t m, const T& val = 0.0) { data_.resize(m, val); }
 
   inline void clear() { data_.clear(); }
 
@@ -75,7 +74,8 @@ protected:
 template<class T>
 inline std::ostream& operator<<(std::ostream& os, const Array1D<T>& v)
 {
-  for (int i = 0; i < v.m()-1; ++i)
+  int m = v.size();
+  for (int i = 0; i < m-1; ++i)
     os << v[i] << ", ";
   os << v.back();
   return os;
