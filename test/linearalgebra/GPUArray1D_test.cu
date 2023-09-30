@@ -10,10 +10,12 @@
 
 using namespace autodiffeq;
 
+template<typename T = double>
 __global__
-void add(int size, const double* x, const double* y, double* z)
+void add(const DeviceArray1D<T>& x, const DeviceArray1D<T>& y, DeviceArray1D<T>& z)
 {
   int i = blockIdx.x*blockDim.x + threadIdx.x;
+  auto size = x.size();
   if (i < size) 
     z[i] = x[i] + y[i];
 }
@@ -23,12 +25,12 @@ TEST( GPUArray1D, Constructor )
 {
   {
     GPUArray1D<double> vec(3);
-    EXPECT_EQ(vec.GetSizeOnHost(), 3u);
+    EXPECT_EQ(vec.size(), 3u);
   }
 
   {
     GPUArray1D<std::complex<double>> vec(5, {0.25, -1.0});
-    EXPECT_EQ(vec.GetSizeOnHost(), 5u);
+    EXPECT_EQ(vec.size(), 5u);
     auto vec_h = vec.CopyToHost();
     for (int i = 0; i < 5; ++i)
     {
@@ -40,7 +42,7 @@ TEST( GPUArray1D, Constructor )
   {
     GPUArray1D<int> vec = {-2, 3, 6, 42, -4, 8};
     auto vec_h = vec.CopyToHost();
-    EXPECT_EQ(vec.GetSizeOnHost(), 6u);
+    EXPECT_EQ(vec.size(), 6u);
     EXPECT_EQ(vec_h.size(), 6u);
     EXPECT_EQ(vec_h[0], -2);
     EXPECT_EQ(vec_h[1], 3);
@@ -50,7 +52,7 @@ TEST( GPUArray1D, Constructor )
     EXPECT_EQ(vec_h[5], 8);
 
     GPUArray1D<int> vec2 = {};
-    EXPECT_EQ(vec2.GetSizeOnHost(), 0u);
+    EXPECT_EQ(vec2.size(), 0u);
   }
 }
 
@@ -62,7 +64,8 @@ TEST( GPUArray1D, Add )
   GPUArray1D<double> y(N, -2.0);
   GPUArray1D<double> z(N);
 
-  add<<<(N+255)/256, 256>>>(N, x.data(), y.data(), z.data());
+  add<<<(N+255)/256, 256>>>(x.GetDeviceArray(), y.GetDeviceArray(), 
+                            z.GetDeviceArray());
   
   auto z_h = z.CopyToHost();
   for (int i = 0; i < N; ++i)

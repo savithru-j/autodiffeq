@@ -11,91 +11,140 @@
 namespace autodiffeq
 {
 
-template<class T = double>
+template<typename T>
+class GPUArray1D;
+
+template<typename T = double>
+class DeviceArray1D
+{
+public:
+
+  friend class GPUArray1D<T>;
+
+  DeviceArray1D() = default;
+  DeviceArray1D(std::size_t m, T* data) : size_(m), data_(data) {}
+
+  ~DeviceArray1D() = default;
+
+  inline __host__ __device__ std::size_t size() const { return size_; }
+  inline __host__ __device__ const T* data() const { return data_; }
+  inline __host__ __device__ T* data() { return data_; }
+
+  inline __host__ __device__ const T& operator()(int i) const { return data_[i]; }
+  inline __host__ __device__ T& operator()(int i) { return data_[i]; }
+
+  inline __host__ __device__ const T& operator[](int i) const { return data_[i]; }
+  inline __host__ __device__ T& operator[](int i) { return data_[i]; }
+
+protected:
+  std::size_t size_ = 0; //data size
+  T* data_ = nullptr; //pointer to array data on device
+};
+
+template<typename T = double>
 class GPUArray1D
 {
 public:
 
-  GPUArray1D() = default;
-  GPUArray1D(std::size_t m) : size_(m)
+  GPUArray1D() { CreateDeviceArray(); }
+  GPUArray1D(std::size_t m)
   {
-    cudaCheckError(cudaMalloc(&d_data_, size_*sizeof(T)));
-    cudaCheckError(cudaMalloc(&d_size_, sizeof(std::size_t)));
-    cudaCheckError(cudaMemcpy(d_size_, &size_, sizeof(std::size_t), cudaMemcpyHostToDevice));
+    CreateDeviceArray();
+    Resize(m);
   }
 
   GPUArray1D(std::size_t m, const T& val) { 
+    CreateDeviceArray();
+    Resize(m);
     Array1D<T> v(m, val);
-    ResizeAndCopy(v.data(), v.size()); 
+    CopyToDevice(v.data());
   }
-  GPUArray1D(const Array1D<T>& v) { ResizeAndCopy(v.data(), v.size()); }
-  GPUArray1D(const std::vector<T>& v) { ResizeAndCopy(v.data(), v.size()); }
+  
+  GPUArray1D(const Array1D<T>& v) { 
+    CreateDeviceArray();
+    Resize(v.size());
+    CopyToDevice(v.data());
+  }
 
-  GPUArray1D(const std::initializer_list<T>& v) { ResizeAndCopy(v.begin(), v.size()); }
+  GPUArray1D(const std::vector<T>& v) {
+    CreateDeviceArray();
+    Resize(v.size());
+    CopyToDevice(v.data());
+  }
+
+  GPUArray1D(const std::initializer_list<T>& v) {
+    CreateDeviceArray();
+    Resize(v.size());
+    CopyToDevice(v.begin());
+  }
 
   ~GPUArray1D() 
   {
-    if (d_data_)
-      cudaCheckError(cudaFree(d_data_));
-    if (d_size_)
-      cudaCheckError(cudaFree(d_size_));
+    if (arr_h_.data_)
+      cudaCheckError(cudaFree(arr_h_.data_));
+    if (arr_d_)
+      cudaCheckError(cudaFree(arr_d_));
   }
 
-  inline __device__ std::size_t m() const { return *d_size_; }
-  inline __device__ std::size_t size() const { return *d_size_; }
-  std::size_t GetSizeOnHost() const { return size_; }
+  inline std::size_t size() const { return arr_h_.size_; }
 
-  inline __device__ const T& operator()(int i) const { return d_data_[i]; }
-  inline __device__ T& operator()(int i) { return d_data_[i]; }
+  const DeviceArray1D<T>& GetDeviceArray() const { return *arr_d_; }
+  DeviceArray1D<T>& GetDeviceArray() { return *arr_d_; }
 
-  inline __device__ const T& operator[](int i) const { return d_data_[i]; }
-  inline __device__ T& operator[](int i) { return d_data_[i]; }
+  const T* GetDeviceData() const { return arr_d_->data_; }
+  T* GetDeviceData() { return arr_d_->data_; }
 
-  inline void ResizeAndCopy(const T* h_data, const std::size_t N)
+  inline void Resize(const std::size_t size)
   {
-    if (d_data_)
-      cudaCheckError(cudaFree(d_data_));
-    if (d_size_)
-      cudaCheckError(cudaFree(d_size_));
-    size_ = N;
-    cudaCheckError(cudaMalloc(&d_data_, size_*sizeof(T)));
-    cudaCheckError(cudaMemcpy(d_data_, h_data, size_*sizeof(T), cudaMemcpyHostToDevice));
-    cudaCheckError(cudaMalloc(&d_size_, sizeof(std::size_t)));
-    cudaCheckError(cudaMemcpy(d_size_, &size_, sizeof(std::size_t), cudaMemcpyHostToDevice));
-  }
-
-  inline void clear() { 
-    if (d_data_)
-      cudaCheckError(cudaFree(d_data_));
-    if (d_size_)
-      cudaCheckError(cudaFree(d_size_));
-    size_ = 0;
-    d_data_ = nullptr;
-    d_size_ = nullptr;
-  }
-
-  inline __host__ __device__ const T* data() const { return d_data_; }
-  inline __host__ __device__ T* data() { return d_data_; }
-
-  inline void SetValue(const T& val) 
-  { 
-    if (size_ > 0)
+    if (size != arr_h_.size_)
     {
-      std::vector<T> data(size_, val);
-      cudaCheckError(cudaMemcpy(d_data_, data.data(), size_*sizeof(T), cudaMemcpyHostToDevice));
+      //Size has changed, so first free existing data
+      if (arr_h_.data_)
+        cudaCheckError(cudaFree(arr_h_.data_));
+
+      arr_h_.size_ = size;
+      if (size > 0)
+        cudaCheckError(cudaMalloc(&arr_h_.data_, size*sizeof(T)));
+      else
+        arr_h_.data_ = nullptr;
+
+      //Copy host struct to device struct
+      cudaCheckError(cudaMemcpy(arr_d_, &arr_h_, sizeof(DeviceArray1D<T>), cudaMemcpyHostToDevice));
     }
   }
 
+  inline void clear() { Resize(0); }
+
+  inline void CopyToDevice(const T* data)
+  {
+    cudaCheckError(cudaMemcpy(arr_h_.data_, data, arr_h_.size_*sizeof(T), cudaMemcpyHostToDevice));
+  }
+
   inline Array1D<T> CopyToHost() const {
-    Array1D<T> vh(size_);
-    cudaCheckError(cudaMemcpy(vh.data(), d_data_, size_*sizeof(T), cudaMemcpyDeviceToHost));
+    Array1D<T> vh(arr_h_.size_);
+    cudaCheckError(cudaMemcpy(vh.data(), arr_h_.data_, arr_h_.size_*sizeof(T), cudaMemcpyDeviceToHost));
     return vh;
   }
 
+  inline void SetValue(const T& val) 
+  { 
+    if (arr_h_.size_ > 0)
+    {
+      std::vector<T> vec(arr_h_.size_, val);
+      cudaCheckError(cudaMemcpy(arr_h_.data_, vec.data(), 
+                                arr_h_.size_*sizeof(T), cudaMemcpyHostToDevice));
+    }
+  }
+
 protected:
-  std::size_t size_ = 0; //data size
-  std::size_t* d_size_ = nullptr; //device pointer to array size
-  T* d_data_ = nullptr; //device pointer to array data
+
+  inline void CreateDeviceArray() {
+    if (!arr_d_)
+      cudaCheckError(cudaMalloc(&arr_d_, sizeof(DeviceArray1D<T>)));
+  }
+
+  DeviceArray1D<T> arr_h_; //host side struct
+  DeviceArray1D<T>* arr_d_ = nullptr; //pointer to device side struct
 };
 
 template<class T>
