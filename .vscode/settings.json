@@ -80,6 +80,7 @@
         "filesystem": "cpp",
         "__tuple": "cpp",
         "climits": "cpp",
-        "__node_handle": "cpp"
+        "__node_handle": "cpp",
+        "__verbose_abort": "cpp"
     },
 }

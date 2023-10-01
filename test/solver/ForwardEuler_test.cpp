@@ -6,8 +6,6 @@
 #include <autodiffeq/numerics/ADVar.hpp>
 #include <autodiffeq/solver/ForwardEuler.hpp>
 
-#include <complex>
-
 using namespace autodiffeq;
 
 template<typename T>

@@ -4,10 +4,13 @@ INCLUDE( ${CMAKE_SOURCE_DIR}/cmake/ForceOutOfSource.cmake ) #This must be the fi
 file(GLOB_RECURSE TEST_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *_test.cpp)
 
 if (AUTODIFFEQ_ENABLE_CUDA)
+  #Set the language of all .cpp files to cuda so that they also get compiled with nvcc
+  set_source_files_properties(${TEST_SRCS} PROPERTIES LANGUAGE CUDA)
+
+  #Find and append cuda source files
   file(GLOB_RECURSE TEST_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cu)
   list (APPEND TEST_SRCS ${TEST_CUDA_SRCS})
 endif()
-# MESSAGE("Test files:" ${TEST_SRCS})
 
 ADD_CUSTOM_TARGET( test_build )
 

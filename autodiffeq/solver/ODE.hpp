@@ -6,6 +6,10 @@
 
 #include <autodiffeq/linearalgebra/Array1D.hpp>
 
+#ifdef ENABLE_CUDA
+#include <autodiffeq/linearalgebra/GPUArray1D.cuh>
+#endif
+
 namespace autodiffeq
 {
 
@@ -24,6 +28,14 @@ public:
   virtual int GetSolutionSize() const = 0;
 
   virtual void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) = 0;
+
+#ifdef ENABLE_CUDA
+  virtual void EvalRHSGPU(const DeviceArray1D<T>& sol, int step, double time, DeviceArray1D<T>& rhs)
+  {
+    std::cout << "EvalRHSGPU function not implemented!" << std::endl;
+    exit(1);
+  }
+#endif
 
 protected:
 

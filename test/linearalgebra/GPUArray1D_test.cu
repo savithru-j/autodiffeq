@@ -3,10 +3,9 @@
 // Copyright (c) 2023, Savithru Jayasinghe
 
 #include <gtest/gtest.h>
+#include <autodiffeq/numerics/Complex.hpp>
 #include <autodiffeq/linearalgebra/Array1D.hpp>
 #include <autodiffeq/linearalgebra/GPUArray1D.cuh>
-
-#include <complex>
 
 using namespace autodiffeq;
 
@@ -29,7 +28,7 @@ TEST( GPUArray1D, Constructor )
   }
 
   {
-    GPUArray1D<std::complex<double>> vec(5, {0.25, -1.0});
+    GPUArray1D<complex<double>> vec(5, {0.25, -1.0});
     EXPECT_EQ(vec.size(), 5u);
     auto vec_h = vec.CopyToHost();
     for (int i = 0; i < 5; ++i)

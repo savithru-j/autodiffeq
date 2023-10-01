@@ -4,8 +4,7 @@
 
 #include <gtest/gtest.h>
 #include <autodiffeq/numerics/ADVar.hpp>
-
-#include <complex>
+#include <autodiffeq/numerics/Complex.hpp>
 
 using namespace autodiffeq;
 
@@ -26,8 +25,8 @@ TEST( ADVar, Constructor )
     EXPECT_EQ(var.size(), 0u);
   }
   {
-    ADVar<std::complex<double>> var({{42.0, -5.0}}, 2);
-    EXPECT_EQ(var.value(), std::complex<double>(42.0, -5.0));
+    ADVar<complex<double>> var(complex<double>(42.0, -5.0), 2);
+    EXPECT_EQ(var.value(), complex<double>(42.0, -5.0));
     EXPECT_EQ(var.size(), 2u);
   }
   {

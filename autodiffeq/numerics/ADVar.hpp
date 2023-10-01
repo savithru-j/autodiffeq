@@ -9,6 +9,14 @@
 #include <cmath>
 #include <ostream>
 
+#ifdef ENABLE_CUDA
+#define HOST __host__
+#define DEVICE __device__
+#else
+#define HOST
+#define DEVICE
+#endif
+
 namespace autodiffeq
 {
 
@@ -51,7 +59,7 @@ class ADVar
 public:
   ADVar() = default;
 
-  ADVar(const T& v, const T d[], const int num_deriv)
+  HOST DEVICE ADVar(const T& v, const T d[], const int num_deriv)
   {
     assert(num_deriv > 0);
     v_ = v;
@@ -61,7 +69,7 @@ public:
       d_[i] = d[i];
   }
 
-  ADVar(const T& v, const std::initializer_list<T>& d)
+  HOST DEVICE ADVar(const T& v, const std::initializer_list<T>& d)
   {
     v_ = v;
     N_ = d.size();
@@ -74,7 +82,7 @@ public:
     }
   }
 
-  explicit ADVar(const T& v, const int num_deriv) : v_(v) 
+  HOST DEVICE explicit ADVar(const T& v, const int num_deriv) : v_(v) 
   {
     assert(num_deriv >= 0);
     N_ = num_deriv;
@@ -86,9 +94,9 @@ public:
     }
   }
   
-  ADVar(const T& v) : v_(v), d_(nullptr), N_(0) {}
+  HOST DEVICE ADVar(const T& v) : v_(v), d_(nullptr), N_(0) {}
 
-  ADVar(const ADVar& var) : v_(var.v_), N_(var.N_)
+  HOST DEVICE ADVar(const ADVar& var) : v_(var.v_), N_(var.N_)
   {
     if (N_ > 0) 
     {
@@ -98,40 +106,40 @@ public:
     }
   }
 
-  ~ADVar() { delete [] d_; }
+  HOST DEVICE ~ADVar() { delete [] d_; }
 
-  inline unsigned int size() const { return N_; }
+  inline HOST DEVICE unsigned int size() const { return N_; }
 
   // value accessors
-  inline T& value() { return v_; }
-  inline const T& value() const { return v_; }
+  inline HOST DEVICE T& value() { return v_; }
+  inline HOST DEVICE const T& value() const { return v_; }
 
   // derivative accessors
-  inline T& deriv(int i = 0) 
+  inline HOST DEVICE T& deriv(int i = 0) 
   {
     assert(N_ > 0);
     assert(i >= 0 && i < (int) N_); 
     return d_[i]; 
   }
-  inline T deriv(int i = 0) const { return N_ > 0 ? d_[i] : T(0.0); }
+  inline HOST DEVICE T deriv(int i = 0) const { return N_ > 0 ? d_[i] : T(0.0); }
 
   // assignment operators
-  ADVar& operator=(const ADVar& var);
-  ADVar& operator=(const T& v);
+  HOST DEVICE ADVar& operator=(const ADVar& var);
+  HOST DEVICE ADVar& operator=(const T& v);
 
   // unary operators
-  const ADVar& operator+() const;
-  const ADVar  operator-() const;
+  HOST DEVICE const ADVar& operator+() const;
+  HOST DEVICE const ADVar  operator-() const;
 
   // binary accumulation operators
-  ADVar& operator+=(const ADVar& var);
-  ADVar& operator+=(const T& v);
-  ADVar& operator-=(const ADVar& var);
-  ADVar& operator-=(const T& v);
-  ADVar& operator*=(const ADVar& var);
-  ADVar& operator*=(const T& v);
-  ADVar& operator/=(const ADVar& var);
-  ADVar& operator/=(const T& v);
+  HOST DEVICE ADVar& operator+=(const ADVar& var);
+  HOST DEVICE ADVar& operator+=(const T& v);
+  HOST DEVICE ADVar& operator-=(const ADVar& var);
+  HOST DEVICE ADVar& operator-=(const T& v);
+  HOST DEVICE ADVar& operator*=(const ADVar& var);
+  HOST DEVICE ADVar& operator*=(const T& v);
+  HOST DEVICE ADVar& operator/=(const ADVar& var);
+  HOST DEVICE ADVar& operator/=(const T& v);
 
   // binary operators
   template<typename U> friend ADVar<U> operator+( const ADVar<U>& a, const ADVar<U>& b);
@@ -388,7 +396,7 @@ ADVar<T>& ADVar<T>::operator/=(const T& v)
 
 //binary operators
 template<typename T>
-ADVar<T> operator+(const ADVar<T>& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator+(const ADVar<T>& a, const ADVar<T>& b)
 {
   if (a.N_ == 0 && b.N_ == 0)
     return ADVar<T>(a.v_ + b.v_);
@@ -405,7 +413,7 @@ ADVar<T> operator+(const ADVar<T>& a, const ADVar<T>& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator+(const ADVar<T>& a, const U& b)
+HOST DEVICE ADVar<T> operator+(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ + b);
@@ -414,7 +422,7 @@ ADVar<T> operator+(const ADVar<T>& a, const U& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator+(const U& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator+(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a + b.v_);
@@ -423,7 +431,7 @@ ADVar<T> operator+(const U& a, const ADVar<T>& b)
 }
 
 template<typename T>
-ADVar<T> operator-(const ADVar<T>& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator-(const ADVar<T>& a, const ADVar<T>& b)
 {
   if (a.N_ == 0 && b.N_ == 0)
     return ADVar<T>(a.v_ - b.v_);
@@ -445,7 +453,7 @@ ADVar<T> operator-(const ADVar<T>& a, const ADVar<T>& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator-(const ADVar<T>& a, const U& b)
+HOST DEVICE ADVar<T> operator-(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ - b);
@@ -454,7 +462,7 @@ ADVar<T> operator-(const ADVar<T>& a, const U& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator-(const U& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator-(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a - b.v_);
@@ -468,7 +476,7 @@ ADVar<T> operator-(const U& a, const ADVar<T>& b)
 }
 
 template<typename T>
-ADVar<T> operator*(const ADVar<T>& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator*(const ADVar<T>& a, const ADVar<T>& b)
 {
   if (a.N_ == 0 && b.N_ == 0)
     return ADVar<T>(a.v_ * b.v_);
@@ -495,7 +503,7 @@ ADVar<T> operator*(const ADVar<T>& a, const ADVar<T>& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator*(const ADVar<T>& a, const U& b)
+HOST DEVICE ADVar<T> operator*(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ * b);
@@ -509,7 +517,7 @@ ADVar<T> operator*(const ADVar<T>& a, const U& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator*(const U& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator*(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a * b.v_);
@@ -523,7 +531,7 @@ ADVar<T> operator*(const U& a, const ADVar<T>& b)
 }
 
 template<typename T>
-ADVar<T> operator/(const ADVar<T>& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator/(const ADVar<T>& a, const ADVar<T>& b)
 {
   if (a.N_ == 0 && b.N_ == 0)
     return ADVar<T>(a.v_ / b.v_);
@@ -553,7 +561,7 @@ ADVar<T> operator/(const ADVar<T>& a, const ADVar<T>& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator/(const ADVar<T>& a, const U& b)
+HOST DEVICE ADVar<T> operator/(const ADVar<T>& a, const U& b)
 {
   if (a.N_ == 0 )
     return ADVar<T>(a.v_ / b);
@@ -568,7 +576,7 @@ ADVar<T> operator/(const ADVar<T>& a, const U& b)
 }
 
 template<typename T, typename U>
-ADVar<T> operator/(const U& a, const ADVar<T>& b)
+HOST DEVICE ADVar<T> operator/(const U& a, const ADVar<T>& b)
 {
   if (b.N_ == 0 )
     return ADVar<T>(a / b.v_);
@@ -585,62 +593,62 @@ ADVar<T> operator/(const U& a, const ADVar<T>& b)
 // relational operators
 
 template<typename T>
-bool operator==(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ == b.v_; }
+HOST DEVICE bool operator==(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ == b.v_; }
 
 template<typename T>
-bool operator==(const ADVar<T>& a, const T& b) { return a.v_ == b; }
+HOST DEVICE bool operator==(const ADVar<T>& a, const T& b) { return a.v_ == b; }
 
 template<typename T>
-bool operator==(const T& a, const ADVar<T>& b) { return a == b.v_; }
+HOST DEVICE bool operator==(const T& a, const ADVar<T>& b) { return a == b.v_; }
 
 template<typename T>
-bool operator!=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ != b.v_; }
+HOST DEVICE bool operator!=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ != b.v_; }
 
 template<typename T>
-bool operator!=(const ADVar<T>& a, const T& b) { return a.v_ != b; }
+HOST DEVICE bool operator!=(const ADVar<T>& a, const T& b) { return a.v_ != b; }
 
 template<typename T>
-bool operator!=(const T& a, const ADVar<T>& b) { return a != b.v_; }
+HOST DEVICE bool operator!=(const T& a, const ADVar<T>& b) { return a != b.v_; }
 
 template<typename T>
-bool operator>(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ > b.v_; }
+HOST DEVICE bool operator>(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ > b.v_; }
 
 template<typename T>
-bool operator>(const ADVar<T>& a, const T& b) { return a.v_ > b; }
+HOST DEVICE bool operator>(const ADVar<T>& a, const T& b) { return a.v_ > b; }
 
 template<typename T>
-bool operator>(const T& a, const ADVar<T>& b) { return a > b.v_; }
+HOST DEVICE bool operator>(const T& a, const ADVar<T>& b) { return a > b.v_; }
 
 template<typename T>
-bool operator<(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ < b.v_; }
+HOST DEVICE bool operator<(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ < b.v_; }
 
 template<typename T>
-bool operator<(const ADVar<T>& a, const T& b) { return a.v_ < b; }
+HOST DEVICE bool operator<(const ADVar<T>& a, const T& b) { return a.v_ < b; }
 
 template<typename T>
-bool operator<(const T& a, const ADVar<T>& b) { return a < b.v_; }
+HOST DEVICE bool operator<(const T& a, const ADVar<T>& b) { return a < b.v_; }
 
 template<typename T>
-bool operator>=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ >= b.v_; }
+HOST DEVICE bool operator>=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ >= b.v_; }
 
 template<typename T>
-bool operator>=(const ADVar<T>& a, const T& b) { return a.v_ >= b; }
+HOST DEVICE bool operator>=(const ADVar<T>& a, const T& b) { return a.v_ >= b; }
 
 template<typename T>
-bool operator>=(const T& a, const ADVar<T>& b) { return a >= b.v_; }
+HOST DEVICE bool operator>=(const T& a, const ADVar<T>& b) { return a >= b.v_; }
 
 template<typename T>
-bool operator<=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ <= b.v_; }
+HOST DEVICE bool operator<=(const ADVar<T>& a, const ADVar<T>& b) { return a.v_ <= b.v_; }
 
 template<typename T>
-bool operator<=(const ADVar<T>& a, const T& b) { return a.v_ <= b; }
+HOST DEVICE bool operator<=(const ADVar<T>& a, const T& b) { return a.v_ <= b; }
 
 template<typename T>
-bool operator<=(const T& a, const ADVar<T>& b) { return a <= b.v_; }
+HOST DEVICE bool operator<=(const T& a, const ADVar<T>& b) { return a <= b.v_; }
 
 #define ADVAR_FUNC(NAME, VALUE, DERIV) \
 template<typename T> \
-ADVar<T> \
+HOST DEVICE ADVar<T> \
 NAME(const ADVar<T>& var) \
 { \
   if ( var.N_ == 0 ) \
@@ -662,7 +670,7 @@ ADVAR_FUNC( asin, asin(var.v_),  T(1)/sqrt(1 - var.v_*var.v_) )
 ADVAR_FUNC( atan, atan(var.v_),  T(1)/(1 + var.v_*var.v_) )
 
 template<typename T>
-ADVar<T>
+HOST DEVICE ADVar<T>
 atan2(const ADVar<T>& y, const ADVar<T>& x)
 {
   T val = atan2(y.v_, x.v_);

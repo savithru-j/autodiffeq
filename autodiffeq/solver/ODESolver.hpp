@@ -36,8 +36,11 @@ public:
     return Solve(sol0, time_vec, storage_stride);
   }
 
+  inline void SetSolveOnGPU(bool solve_on_gpu) { solve_on_gpu_ = solve_on_gpu; }
+
 protected:
   ODE<T>& ode_;
+  bool solve_on_gpu_ = false;
 };
 
 }

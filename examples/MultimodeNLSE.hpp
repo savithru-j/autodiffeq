@@ -1,11 +1,10 @@
 #include <autodiffeq/numerics/ADVar.hpp>
+#include <autodiffeq/numerics/Complex.hpp>
 #include <autodiffeq/solver/ODE.hpp>
 #include <autodiffeq/linearalgebra/Array1D.hpp>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
 #include <iostream>
 #include <iomanip>
-
-#include <complex>
 
 namespace autodiffeq
 {
@@ -15,9 +14,9 @@ class MultimodeNLSE : public ODE<T>
 {
 public:
 
-  static_assert(std::is_same<T, std::complex<double>>::value ||
-                std::is_same<T, ADVar<std::complex<double>>>::value, 
-                "Template datatype needs to be std::complex<double> or ADVar<std::complex>!");
+  static_assert(std::is_same<T, complex<double>>::value ||
+                std::is_same<T, ADVar<complex<double>>>::value, 
+                "Template datatype needs to be complex<double> or ADVar<complex<double>>!");
 
   MultimodeNLSE(const int num_modes, const int num_time_points, 
                 const double tmin, const double tmax, const Array2D<double>& beta_mat) :
@@ -56,12 +55,12 @@ public:
 
   void EvalRHS(const Array1D<T>& sol, int step, double z, Array1D<T>& rhs)
   {
-    constexpr std::complex<double> imag(0.0, 1.0);
+    constexpr complex<double> imag(0.0, 1.0);
     const auto beta00 = beta_mat_(0,0);
     const auto beta10 = beta_mat_(1,0);
     constexpr double inv6 = 1.0/6.0;
     constexpr double inv24 = 1.0/24.0;
-    const std::complex<double> j_n_omega0_invc(0.0, n2_*omega0_/c_);
+    const complex<double> j_n_omega0_invc(0.0, n2_*omega0_/c_);
 
     for (int p = 0; p < num_modes_; ++p)
     {
@@ -117,7 +116,7 @@ public:
           for (int s = 0; s < num_modes_; ++s)
           {
             const auto& As = sol(s*num_time_points_ + i);
-            sum += Sk_(p,q,r,s)*Aq*Ar*std::conj(As);
+            sum += Sk_(p,q,r,s)*Aq*Ar*conj(As);
           }
         }
       }

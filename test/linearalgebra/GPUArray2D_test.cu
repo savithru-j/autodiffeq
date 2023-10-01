@@ -3,12 +3,11 @@
 // Copyright (c) 2023, Savithru Jayasinghe
 
 #include <gtest/gtest.h>
+#include <autodiffeq/numerics/Complex.hpp>
 #include <autodiffeq/linearalgebra/Array1D.hpp>
 #include <autodiffeq/linearalgebra/GPUArray1D.cuh>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
 #include <autodiffeq/linearalgebra/GPUArray2D.cuh>
-
-#include <complex>
 
 using namespace autodiffeq;
 
@@ -38,7 +37,7 @@ TEST( GPUArray2D, Constructor )
   }
 
   {
-    GPUArray2D<std::complex<double>> mat(5, 4, {0.25, -1.0});
+    GPUArray2D<complex<double>> mat(5, 4, {0.25, -1.0});
     EXPECT_EQ(mat.GetNumRows(), 5);
     EXPECT_EQ(mat.GetNumCols(), 4);
     auto mat_h = mat.CopyToHost();

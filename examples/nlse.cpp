@@ -1,4 +1,5 @@
 #include <autodiffeq/numerics/ADVar.hpp>
+#include <autodiffeq/numerics/Complex.hpp>
 #include <autodiffeq/solver/ForwardEuler.hpp>
 #include <autodiffeq/solver/RungeKutta.hpp>
 #include <autodiffeq/linearalgebra/Array2D.hpp>
@@ -19,7 +20,7 @@ using namespace autodiffeq;
 
 int main()
 {
-  using Complex = std::complex<double>;
+  using Complex = complex<double>;
   // using ComplexAD = ADVar<Complex>;
   using clock = std::chrono::high_resolution_clock;
 
@@ -99,8 +100,8 @@ int main()
       if (i % storage_stride == 0)
       {
       for (int j = 0; j < num_time_points-1; ++j)
-        f << std::abs(sol_hist(i, offset + j)) << ", ";
-      f << std::abs(sol_hist(i, offset + num_time_points-1)) << std::endl;
+        f << abs(sol_hist(i, offset + j)) << ", ";
+      f << abs(sol_hist(i, offset + num_time_points-1)) << std::endl;
       }
     }
     f.close();

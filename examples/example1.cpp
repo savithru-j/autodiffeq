@@ -3,8 +3,6 @@
 #include <iostream>
 #include <iomanip>
 
-#include <complex>
-
 using namespace autodiffeq;
 
 template<typename T>
