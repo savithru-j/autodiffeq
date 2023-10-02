@@ -116,7 +116,7 @@ protected:
 
     for (int step = 0; step < num_steps; ++step)
     {
-      ode_.EvalRHSGPU(sol.GetDeviceArray(), step, time, rhs.GetDeviceArray());
+      ode_.EvalRHS(sol, step, time, rhs);
 
       double dt = time_vec(step+1) - time_vec(step);
       StepSolution<<<(sol_dim+255)/256, 256>>>(rhs.GetDeviceArray(), dt, 

@@ -8,7 +8,7 @@ if (AUTODIFFEQ_ENABLE_CUDA)
   set_source_files_properties(${TEST_SRCS} PROPERTIES LANGUAGE CUDA)
 
   #Find and append cuda source files
-  file(GLOB_RECURSE TEST_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.cu)
+  file(GLOB_RECURSE TEST_CUDA_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *_gputest.cu)
   list (APPEND TEST_SRCS ${TEST_CUDA_SRCS})
 endif()
 

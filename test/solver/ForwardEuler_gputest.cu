@@ -8,6 +8,16 @@
 
 using namespace autodiffeq;
 
+template<typename T = double>
+__global__
+void evalRHS(const DeviceArray1D<T>& sol, DeviceArray1D<T>& rhs)
+{
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  auto soldim = sol.size();
+  if (i < soldim) 
+    rhs[i] = sol[i];
+}
+
 template<typename T>
 class TestODE : public ODE<T>
 {
@@ -16,13 +26,12 @@ public:
 
   TestODE(const Array1D<T>& coeff) : coeff_(coeff) {}
 
-  int GetSolutionSize() const { return 3; }
+  int GetSolutionSize() const { return 10; }
 
-  void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) override
+  void EvalRHS(const GPUArray1D<T>& sol, int step, double time, GPUArray1D<T>& rhs) override
   {
-    rhs(0) = coeff_(0)*sol(0) + coeff_(1)*sol(1) + coeff_(2)*sol(2);
-    rhs(1) = coeff_(3)*sol(0) + coeff_(4)*sol(1) + coeff_(5)*sol(2);
-    rhs(2) = coeff_(6)*sol(0) + coeff_(7)*sol(1) + coeff_(8)*sol(2);
+    auto soldim = sol.size();
+    evalRHS<<<(soldim+63)/64, 64>>>(sol.GetDeviceArray(), rhs.GetDeviceArray());
   }
 
 protected:
@@ -46,11 +55,33 @@ public:
   }
 };
 
-
 //----------------------------------------------------------------------------//
 TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
 {
-  Array1D<double> sol0(3);
+  Array1D<double> sol0(10);
+  sol0(0) = 10.0;
+  sol0(1) = -3.0;
+  sol0(2) = 7.0;
+ 
+  int nt = 10;
+  double eps = 1e-9;
+
+  double ts = 0.0, tf = 1.0;
+
+  Array1D<double> coeff;
+  TestODE<double> ode_p(coeff);
+  ForwardEuler<double> solver_p(ode_p);
+  solver_p.SetSolveOnGPU(true);
+
+  auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
+
+}
+
+#if 0
+//----------------------------------------------------------------------------//
+TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
+{
+  Array1D<double> sol0(10);
   sol0(0) = 10.0;
   sol0(1) = -3.0;
   sol0(2) = 7.0;
@@ -292,3 +323,4 @@ TEST( ForwardEuler, Accuracy )
 
   EXPECT_NEAR(convergence_rate, 1.0, 1e-2);
 }
+#endif

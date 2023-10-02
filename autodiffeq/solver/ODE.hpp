@@ -27,12 +27,16 @@ public:
 
   virtual int GetSolutionSize() const = 0;
 
-  virtual void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) = 0;
+  virtual void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs)
+  {
+    std::cout << "EvalRHS function not implemented!" << std::endl;
+    exit(1);
+  }
 
 #ifdef ENABLE_CUDA
-  virtual void EvalRHSGPU(const DeviceArray1D<T>& sol, int step, double time, DeviceArray1D<T>& rhs)
+  virtual void EvalRHS(const GPUArray1D<T>& sol, int step, double time, GPUArray1D<T>& rhs)
   {
-    std::cout << "EvalRHSGPU function not implemented!" << std::endl;
+    std::cout << "EvalRHS function not implemented for GPUs!" << std::endl;
     exit(1);
   }
 #endif
