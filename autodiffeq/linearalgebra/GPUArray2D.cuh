@@ -145,6 +145,12 @@ public:
     return mat_h;
   }
 
+  inline void CopyToHost(Array2D<T>& mat_h) const {
+    assert(mat_h.GetNumRows() == arr_h_.nrows_);
+    assert(mat_h.GetNumCols() == arr_h_.ncols_);
+    cudaCheckError(cudaMemcpy(mat_h.GetDataVector().data(), arr_h_.data_, arr_h_.size()*sizeof(T), cudaMemcpyDeviceToHost));
+  }
+
   inline void SetValue(const T& val) 
   { 
     if (arr_h_.size() > 0)

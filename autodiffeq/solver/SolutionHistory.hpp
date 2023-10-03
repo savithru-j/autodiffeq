@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <autodiffeq/linearalgebra/Array1D.hpp>
+#include <autodiffeq/linearalgebra/Array2D.hpp>
 
 namespace autodiffeq
 {
@@ -22,15 +23,15 @@ public:
     num_steps_stored_ = time_vec_.size() / storage_stride_;
     if (time_vec.size() % storage_stride_ != 0)
       num_steps_stored_++;
-    data_.resize(num_steps_stored_*sol_dim_, T(0));
+    data_.resize(num_steps_stored_, sol_dim_, 0);
   }
 
   inline int GetSolutionSize() const { return sol_dim_; }
   inline int GetNumSteps() const { return time_vec_.size(); }
   inline int GetNumStepsStored() const { return num_steps_stored_; }
 
-  inline const T& operator()(int step, int state) const { return data_[(step/storage_stride_)*sol_dim_ + state]; }
-  inline T& operator()(int step, int state) { return data_[(step/storage_stride_)*sol_dim_ + state]; }
+  inline const T& operator()(int step, int state) const { return data_(step/storage_stride_, state); }
+  inline T& operator()(int step, int state) { return data_(step/storage_stride_, state); }
 
   //! Returns the solution at a given step
   inline void GetSolution(const int step, Array1D<T>& sol) const {
@@ -56,15 +57,15 @@ public:
 
   inline double GetTime(int step) const { return time_vec_(step); }
 
-  inline const Array1D<T>& GetData() const { return data_; }
-  inline Array1D<T>& GetData() { return data_; }
+  inline const Array2D<T>& GetData() const { return data_; }
+  inline Array2D<T>& GetData() { return data_; }
 
 protected:
   int sol_dim_ = 0;
   Array1D<double> time_vec_;
   int storage_stride_;
   std::size_t num_steps_stored_;
-  Array1D<T> data_;
+  Array2D<T> data_; //solution history data [num_steps x num_states]
 };
 
 template<class T>

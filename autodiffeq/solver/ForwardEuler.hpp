@@ -9,6 +9,10 @@
 #include <ostream>
 #include "ODESolver.hpp"
 
+#ifdef ENABLE_CUDA
+#include <autodiffeq/solver/GPUSolutionHistory.cuh>
+#endif
+
 namespace autodiffeq
 {
 
@@ -101,8 +105,8 @@ protected:
 
     GPUArray1D<T> sol(sol0);
     const int sol_dim = sol0.size();
-    SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
-    // sol_hist.SetSolution(0, sol0);
+    GPUSolutionHistory<T> gpu_hist(sol_dim, time_vec, storage_stride);
+    gpu_hist.SetSolution(0, sol);
 
     if (ode_.GetSolutionSize() != sol_dim)
     {
@@ -114,18 +118,23 @@ protected:
     double time = time_vec(0);
     GPUArray1D<T> rhs(sol_dim, T(0));
 
+    dim3 thread_dim = 256;
+    dim3 block_dim = (sol_dim + thread_dim.x-1) / thread_dim.x;
+
     for (int step = 0; step < num_steps; ++step)
     {
       ode_.EvalRHS(sol, step, time, rhs);
 
       double dt = time_vec(step+1) - time_vec(step);
-      StepSolution<<<(sol_dim+255)/256, 256>>>(rhs.GetDeviceArray(), dt, 
-                                               sol.GetDeviceArray());
-      // if ((step+1) % storage_stride == 0)
-      //   sol_hist.SetSolution(step+1, sol);
+      StepSolution<<<block_dim, thread_dim>>>(rhs.GetDeviceArray(), dt, 
+                                              sol.GetDeviceArray());
+      if ((step+1) % storage_stride == 0)
+        gpu_hist.SetSolution(step+1, sol);
       time += dt;
     }
 
+    SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
+    gpu_hist.GetData().CopyToHost(sol_hist.GetData());
     return sol_hist;
   }
 #endif

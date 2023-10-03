@@ -5,6 +5,7 @@
 #include <gtest/gtest.h>
 #include <autodiffeq/numerics/ADVar.hpp>
 #include <autodiffeq/solver/ForwardEuler.hpp>
+#include <chrono>
 
 using namespace autodiffeq;
 
@@ -24,303 +25,60 @@ class TestODE : public ODE<T>
 public:
   using ODE<T>::EvalRHS;
 
-  TestODE(const Array1D<T>& coeff) : coeff_(coeff) {}
+  TestODE() = default;
 
-  int GetSolutionSize() const { return 10; }
+  int GetSolutionSize() const { return 2000; }
 
-  void EvalRHS(const GPUArray1D<T>& sol, int step, double time, GPUArray1D<T>& rhs) override
+  inline void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) override
+  {
+    auto soldim = sol.size();
+    for (int i = 0; i < soldim; ++i)
+      rhs[i] = sol[i];
+  }
+
+  inline void EvalRHS(const GPUArray1D<T>& sol, int step, double time, GPUArray1D<T>& rhs) override
   {
     auto soldim = sol.size();
     evalRHS<<<(soldim+63)/64, 64>>>(sol.GetDeviceArray(), rhs.GetDeviceArray());
   }
 
 protected:
-  Array1D<T> coeff_;
-};
-
-template<typename T>
-class TrigODE : public ODE<T>
-{
-public:
-  using ODE<T>::EvalRHS;
-
-  TrigODE() = default;
-
-  int GetSolutionSize() const { return 1; }
-
-  void EvalRHS(const Array1D<T>& sol, int step, double time, Array1D<T>& rhs) override
-  {
-    //Manufactured RHS for exact solution u(t) = 6*cos(2t) + cos(t)
-    rhs(0) = 6.0*std::cos(2.0*time) - std::sin(time);
-  }
 };
 
 //----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
+TEST( ForwardEuler, CPU_GPU_Consistency )
 {
-  Array1D<double> sol0(10);
-  sol0(0) = 10.0;
-  sol0(1) = -3.0;
-  sol0(2) = 7.0;
+  using clock = std::chrono::high_resolution_clock;
+
+  TestODE<double> ode;
+  const int soldim = ode.GetSolutionSize();
+
+  Array1D<double> sol0(soldim);
+  for (int i = 0; i < soldim; ++i)
+    sol0(i) = std::sin(i);
  
-  int nt = 10;
-  double eps = 1e-9;
-
+  int nt = 10000;
+  double eps = 1e-12;
   double ts = 0.0, tf = 1.0;
 
-  Array1D<double> coeff;
-  TestODE<double> ode_p(coeff);
-  ForwardEuler<double> solver_p(ode_p);
-  solver_p.SetSolveOnGPU(true);
-
-  auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
-
-}
-
-#if 0
-//----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv1 )
-{
-  Array1D<double> sol0(10);
-  sol0(0) = 10.0;
-  sol0(1) = -3.0;
-  sol0(2) = 7.0;
-
-  Array1D<double> coeff(9);
-  coeff(0) = -1.0; coeff(1) =  0.2; coeff(2) = -0.1;
-  coeff(3) = -0.4; coeff(4) = -3.0; coeff(5) =  0.3;
-  coeff(6) =  0.1; coeff(7) = -0.7; coeff(8) = -1.7;
-  
-  int nt = 10;
-  double eps = 1e-9;
-
-  double ts = 0.0, tf = 1.0;
-
-  Array1D<double> dsolfinal0_dcoeff(9);
-  Array1D<double> dsolfinal1_dcoeff(9);
-  Array1D<double> dsolfinal2_dcoeff(9);
-
-  for (int ic = 0; ic < 9; ++ic)
-  {
-    coeff(ic) += eps;
-    TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
-    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
-    
-    coeff(ic) -= 2*eps;
-    TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
-    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
-
-    coeff(ic) += eps;
-
-    dsolfinal0_dcoeff(ic) = (sol_hist_p(nt, 0) - sol_hist_m(nt, 0)) / (2.0*eps);
-    dsolfinal1_dcoeff(ic) = (sol_hist_p(nt, 1) - sol_hist_m(nt, 1)) / (2.0*eps);
-    dsolfinal2_dcoeff(ic) = (sol_hist_p(nt, 2) - sol_hist_m(nt, 2)) / (2.0*eps);
-  }
-
-  // std::cout << dsolfinal0_dcoeff << std::endl;
-  // std::cout << dsolfinal1_dcoeff << std::endl;
-  // std::cout << dsolfinal2_dcoeff << std::endl;
-
-  const int num_deriv = 1;
-  const double tol = 1e-6;
-
-  Array1D<ADVar<double>> coeff_ad(9);
-  for (int i = 0; i < 9; ++i)
-    coeff_ad(i) = ADVar<double>(coeff(i), num_deriv);
-
-  for (int ic = 0; ic < 9; ++ic)
-  {
-    coeff_ad(ic).deriv() = 1.0;
-
-    Array1D<ADVar<double>> sol_ad0(3);
-    for (int i = 0; i < 3; ++i)
-      sol_ad0(i) = sol0(i);
-
-    TestODE<ADVar<double>> ode_ad(coeff_ad);
-    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
-    auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
-
-    // std::cout << sol_hist_ad(nt, 0).deriv() << ", " << sol_hist_ad(nt, 1).deriv() << ", " << sol_hist_ad(nt, 2).deriv() << std::endl;
-    EXPECT_NEAR(sol_hist_ad(nt, 0).deriv(), dsolfinal0_dcoeff(ic), tol);
-    EXPECT_NEAR(sol_hist_ad(nt, 1).deriv(), dsolfinal1_dcoeff(ic), tol);
-    EXPECT_NEAR(sol_hist_ad(nt, 2).deriv(), dsolfinal2_dcoeff(ic), tol);
-
-    coeff_ad(ic).deriv() = 0.0;
-  }
-}
-
-//----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv3 )
-{
-  Array1D<double> sol0(3);
-  sol0(0) = 10.0;
-  sol0(1) = -3.0;
-  sol0(2) = 7.0;
-
-  Array1D<double> coeff(9);
-  coeff(0) = -1.0; coeff(1) =  0.2; coeff(2) = -0.1;
-  coeff(3) = -0.4; coeff(4) = -3.0; coeff(5) =  0.3;
-  coeff(6) =  0.1; coeff(7) = -0.7; coeff(8) = -1.7;
-  
-  int nt = 10;
-  double eps = 1e-9;
-
-  double ts = 0.0, tf = 1.0;
-
-  Array1D<double> dsolfinal0_dcoeff(9);
-  Array1D<double> dsolfinal1_dcoeff(9);
-  Array1D<double> dsolfinal2_dcoeff(9);
-
-  for (int ic = 0; ic < 9; ++ic)
-  {
-    coeff(ic) += eps;
-    TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
-    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
-    
-    coeff(ic) -= 2*eps;
-    TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
-    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
-
-    coeff(ic) += eps;
-
-    dsolfinal0_dcoeff(ic) = (sol_hist_p(nt, 0) - sol_hist_m(nt, 0)) / (2.0*eps);
-    dsolfinal1_dcoeff(ic) = (sol_hist_p(nt, 1) - sol_hist_m(nt, 1)) / (2.0*eps);
-    dsolfinal2_dcoeff(ic) = (sol_hist_p(nt, 2) - sol_hist_m(nt, 2)) / (2.0*eps);
-  }
-
-  // std::cout << dsolfinal0_dcoeff << std::endl;
-  // std::cout << dsolfinal1_dcoeff << std::endl;
-  // std::cout << dsolfinal2_dcoeff << std::endl;
-
-  const int num_deriv = 3;
-  const double tol = 1e-6;
-
-  Array1D<ADVar<double>> coeff_ad(9);
-  for (int i = 0; i < 9; ++i)
-    coeff_ad(i) = ADVar<double>(coeff(i), num_deriv);
-
-  for (int grp = 0; grp < 3; ++grp)
-  {
-    for (int id = 0; id < 3; ++id)
-      coeff_ad(3*grp + id).deriv(id) = 1.0;
-
-    Array1D<ADVar<double>> sol_ad0(3);
-    for (int i = 0; i < 3; ++i)
-      sol_ad0(i) = sol0(i);
-
-    TestODE<ADVar<double>> ode_ad(coeff_ad);
-    ForwardEuler<ADVar<double>> solver_ad(ode_ad);
-    auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
-
-    for (int id = 0; id < 3; ++id)
-    {
-      // std::cout << sol_hist_ad(nt, 0).deriv(id) << ", " << sol_hist_ad(nt, 1).deriv(id) << ", " << sol_hist_ad(nt, 2).deriv(id) << std::endl;
-      EXPECT_NEAR(sol_hist_ad(nt, 0).deriv(id), dsolfinal0_dcoeff(3*grp + id), tol);
-      EXPECT_NEAR(sol_hist_ad(nt, 1).deriv(id), dsolfinal1_dcoeff(3*grp + id), tol);
-      EXPECT_NEAR(sol_hist_ad(nt, 2).deriv(id), dsolfinal2_dcoeff(3*grp + id), tol);
-    }
-
-    for (int id = 0; id < 3; ++id)
-      coeff_ad(3*grp + id).deriv(id) = 0.0;
-  }
-}
-
-//----------------------------------------------------------------------------//
-TEST( ForwardEuler, CoefficientSensitivityNumDeriv9 )
-{
-  Array1D<double> sol0(3);
-  sol0(0) = 10.0;
-  sol0(1) = -3.0;
-  sol0(2) = 7.0;
-
-  Array1D<double> coeff(9);
-  coeff(0) = -1.0; coeff(1) =  0.2; coeff(2) = -0.1;
-  coeff(3) = -0.4; coeff(4) = -3.0; coeff(5) =  0.3;
-  coeff(6) =  0.1; coeff(7) = -0.7; coeff(8) = -1.7;
-  
-  int nt = 10;
-  double eps = 1e-9;
-
-  double ts = 0.0, tf = 1.0;
-
-  Array1D<double> dsolfinal0_dcoeff(9);
-  Array1D<double> dsolfinal1_dcoeff(9);
-  Array1D<double> dsolfinal2_dcoeff(9);
-
-  for (int ic = 0; ic < 9; ++ic)
-  {
-    coeff(ic) += eps;
-    TestODE<double> ode_p(coeff);
-    ForwardEuler<double> solver_p(ode_p);
-    auto sol_hist_p = solver_p.Solve(sol0, ts, tf, nt);
-    
-    coeff(ic) -= 2*eps;
-    TestODE<double> ode_m(coeff);
-    ForwardEuler<double> solver_m(ode_m);
-    auto sol_hist_m = solver_m.Solve(sol0, ts, tf, nt);
-
-    coeff(ic) += eps;
-
-    dsolfinal0_dcoeff(ic) = (sol_hist_p(nt, 0) - sol_hist_m(nt, 0)) / (2.0*eps);
-    dsolfinal1_dcoeff(ic) = (sol_hist_p(nt, 1) - sol_hist_m(nt, 1)) / (2.0*eps);
-    dsolfinal2_dcoeff(ic) = (sol_hist_p(nt, 2) - sol_hist_m(nt, 2)) / (2.0*eps);
-  }
-
-  // std::cout << dsolfinal0_dcoeff << std::endl;
-  // std::cout << dsolfinal1_dcoeff << std::endl;
-  // std::cout << dsolfinal2_dcoeff << std::endl;
-
-  const int num_deriv = 9;
-  const double tol = 1e-6;
-
-  Array1D<ADVar<double>> coeff_ad(9);
-  for (int i = 0; i < 9; ++i)
-    coeff_ad(i) = ADVar<double>(coeff(i), num_deriv);
-
-  for (int id = 0; id < 9; ++id)
-    coeff_ad(id).deriv(id) = 1.0;
-
-  Array1D<ADVar<double>> sol_ad0(3);
-  for (int i = 0; i < 3; ++i)
-    sol_ad0(i) = sol0(i);
-
-  TestODE<ADVar<double>> ode_ad(coeff_ad);
-  ForwardEuler<ADVar<double>> solver_ad(ode_ad);
-  auto sol_hist_ad = solver_ad.Solve(sol_ad0, ts, tf, nt);
-
-  for (int id = 0; id < 9; ++id)
-  {
-    // std::cout << sol_hist_ad(nt, 0).deriv(id) << ", " << sol_hist_ad(nt, 1).deriv(id) << ", " << sol_hist_ad(nt, 2).deriv(id) << std::endl;
-    EXPECT_NEAR(sol_hist_ad(nt, 0).deriv(id), dsolfinal0_dcoeff(id), tol);
-    EXPECT_NEAR(sol_hist_ad(nt, 1).deriv(id), dsolfinal1_dcoeff(id), tol);
-    EXPECT_NEAR(sol_hist_ad(nt, 2).deriv(id), dsolfinal2_dcoeff(id), tol);
-  }
-}
-
-//----------------------------------------------------------------------------//
-TEST( ForwardEuler, Accuracy )
-{
-  TrigODE<double> ode;
   ForwardEuler<double> solver(ode);
+  solver.SetSolveOnGPU(false);
 
-  Array1D<double> sol0 = {1.0};
-  
-  double T = 10.0;
-  double uT_exact = 3.0*std::sin(2.0*T) + std::cos(T);
+  auto t0 = clock::now();
+  auto sol_hist_cpu = solver.Solve(sol0, ts, tf, nt);
+  auto t1 = clock::now();
+  auto cpu_time = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() / 1000.0;
+  std::cout << "CPU time: " << cpu_time << " ms" << std::endl;
 
-  int nt0 = 1000;
-  auto sol_hist = solver.Solve(sol0, 0.0, T, nt0);
-  double err0 = std::abs(sol_hist(nt0,0) - uT_exact);
+  solver.SetSolveOnGPU(true);
+  t0 = clock::now();
+  auto sol_hist_gpu = solver.Solve(sol0, ts, tf, nt);
+  t1 = clock::now();
+  auto gpu_time = std::chrono::duration_cast<std::chrono::milliseconds>(t1-t0).count() / 1000.0;
+  std::cout << "GPU time: " << gpu_time << " ms" << std::endl;
 
-  int nt1 = 10000;
-  sol_hist = solver.Solve(sol0, 0.0, T, nt1);
-  double err1 = std::abs(sol_hist(nt1,0) - uT_exact);
-  double convergence_rate = std::log10(err1/err0) / std::log10((double)nt0/(double)nt1);
+  for (int t = 0; t < nt; ++t)
+    for (int i = 0; i < soldim; ++i)
+      EXPECT_NEAR(sol_hist_cpu(t,i), sol_hist_gpu(t,i), eps);
 
-  EXPECT_NEAR(convergence_rate, 1.0, 1e-2);
 }
-#endif
