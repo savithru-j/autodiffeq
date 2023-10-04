@@ -9,6 +9,11 @@
 #include <ostream>
 #include "ODESolver.hpp"
 
+#ifdef ENABLE_CUDA
+#include <autodiffeq/solver/GPUSolutionHistory.cuh>
+#include <autodiffeq/solver/SolverKernels.cuh>
+#endif
+
 namespace autodiffeq
 {
 
@@ -28,6 +33,7 @@ public:
 
   using ODESolver<T>::ode_;
   using ODESolver<T>::Solve;
+  using ODESolver<T>::solve_on_gpu_;
 
   SolutionHistory<T> 
   Solve(const Array1D<T>& sol0, const Array1D<double>& time_vec,
@@ -40,10 +46,25 @@ public:
       exit(1);
     }
 
-    if (order_ == 4)
-      return RK4(sol0, time_vec, storage_stride);
-    else if (order_ == 5)
-      return DOPRI5(sol0, time_vec, storage_stride);
+    if (!solve_on_gpu_)
+    {
+      if (order_ == 4)
+        return RK4(sol0, time_vec, storage_stride);
+      else if (order_ == 5)
+        return DOPRI5(sol0, time_vec, storage_stride);
+    }
+    else
+    {
+#ifdef ENABLE_CUDA
+      if (order_ == 4)
+        return RK4GPU(sol0, time_vec, storage_stride);
+      else if (order_ == 5)
+        return DOPRI5GPU(sol0, time_vec, storage_stride);
+#else
+      std::cout << "Need to compile with CUDA enabled to solve on GPUs" << std::endl;
+      exit(1);
+#endif
+    }
   }
 
 protected:
@@ -179,6 +200,69 @@ protected:
 
     return sol_hist;
   }
+
+#ifdef ENABLE_CUDA
+  /* Fourth-order "classical" Runge-Kutta integrator */
+  SolutionHistory<T> 
+  RK4GPU(const Array1D<T>& sol0, const Array1D<double>& time_vec,
+      const int storage_stride = 1)
+  {
+    const int num_steps = time_vec.size() - 1;
+    assert(num_steps >= 1);
+    const int sol_dim = sol0.size();
+    GPUSolutionHistory<T> gpu_hist(sol_dim, time_vec, storage_stride);
+
+    GPUArray1D<T> sol(sol0), sol_tmp(sol_dim);
+    GPUArray1D<T> k1(sol_dim), k2(sol_dim), k3(sol_dim), k4(sol_dim);
+    gpu_hist.SetSolution(0, sol);
+
+    double time = time_vec(0);
+    constexpr double inv6 = 1.0/6.0;
+
+    dim3 thread_dim = 256;
+    dim3 block_dim = (sol_dim + thread_dim.x-1) / thread_dim.x;
+    
+    for (int step = 0; step < num_steps; ++step)
+    {
+      double dt = time_vec(step+1) - time_vec(step);
+      double half_dt = 0.5*dt;
+      ode_.EvalRHS(sol, step, time, k1);
+
+      gpu::StepSolution<<<block_dim, thread_dim>>>(sol.GetDeviceArray(), k1.GetDeviceArray(), half_dt, 
+                                                   sol_tmp.GetDeviceArray());
+      ode_.EvalRHS(sol_tmp, step, time + half_dt, k2);
+
+      gpu::StepSolution<<<block_dim, thread_dim>>>(sol.GetDeviceArray(), k2.GetDeviceArray(), half_dt, 
+                                                   sol_tmp.GetDeviceArray());
+      ode_.EvalRHS(sol_tmp, step, time + half_dt, k3);
+
+      gpu::StepSolution<<<block_dim, thread_dim>>>(sol.GetDeviceArray(), k3.GetDeviceArray(), dt, 
+                                                   sol_tmp.GetDeviceArray());
+      ode_.EvalRHS(sol_tmp, step, time + dt, k4);
+      
+      gpu::StepSolutionRK4<<<block_dim, thread_dim>>>(k1.GetDeviceArray(), k2.GetDeviceArray(), 
+                                                      k3.GetDeviceArray(), k4.GetDeviceArray(), inv6*dt, 
+                                                      sol.GetDeviceArray());
+
+      if ((step+1) % storage_stride == 0)
+        gpu_hist.SetSolution(step+1, sol);
+      time += dt;
+    }
+
+    SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
+    gpu_hist.GetData().CopyToHost(sol_hist.GetData());
+    return sol_hist;
+  }
+
+   /* Fifth-order scheme from the Dormand-Prince method */
+  SolutionHistory<T> 
+  DOPRI5GPU(const Array1D<T>& sol0, const Array1D<double>& time_vec,
+            const int storage_stride = 1)
+  {
+    //TODO
+  }
+#endif
+
 };
 
 }

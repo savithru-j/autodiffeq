@@ -14,29 +14,29 @@ namespace autodiffeq
 #ifdef ENABLE_CUDA
 namespace gpu
 {
-  template<typename T>
-  __global__
-  void GetSolution(const int timestep, const int storage_stride, const DeviceArray2D<T>& sol_hist,
-                   DeviceArray1D<T>& sol)
-  {
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-    const int storage_step = timestep / storage_stride;
-    auto sol_dim = sol.size();
-    if (i < sol_dim) 
-      sol(i) = sol_hist(storage_step, i);
-  }
+template<typename T>
+__global__
+void GetSolution(const int timestep, const int storage_stride, const DeviceArray2D<T>& sol_hist,
+                 DeviceArray1D<T>& sol)
+{
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  const int storage_step = timestep / storage_stride;
+  auto sol_dim = sol.size();
+  if (i < sol_dim) 
+    sol(i) = sol_hist(storage_step, i);
+}
 
-  template<typename T>
-  __global__
-  void SetSolution(const int timestep, const int storage_stride, const DeviceArray1D<T>& sol,
-                   DeviceArray2D<T>& sol_hist)
-  {
-    int i = blockIdx.x*blockDim.x + threadIdx.x;
-    const int storage_step = timestep / storage_stride;
-    auto sol_dim = sol.size();
-    if (i < sol_dim) 
-      sol_hist(storage_step, i) = sol(i);
-  }
+template<typename T>
+__global__
+void SetSolution(const int timestep, const int storage_stride, const DeviceArray1D<T>& sol,
+                 DeviceArray2D<T>& sol_hist)
+{
+  int i = blockIdx.x*blockDim.x + threadIdx.x;
+  const int storage_step = timestep / storage_stride;
+  auto sol_dim = sol.size();
+  if (i < sol_dim) 
+    sol_hist(storage_step, i) = sol(i);
+}
 }
 #endif
 
