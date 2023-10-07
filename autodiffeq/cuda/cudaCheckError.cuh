@@ -33,3 +33,22 @@ void check_cuda_error(cudaError_t err, const char* const func, const char* const
   }
 #endif
 }
+
+#define cudaCheckLastError() check_cuda_last_error(__FILE__, __LINE__)
+void check_cuda_last_error(const char* const file, const int line)
+{
+  cudaError_t err_last = cudaGetLastError();
+  if (err_last != cudaSuccess) {
+    printf("CUDA last error: %s - %s\n", cudaGetErrorName(err_last), cudaGetErrorString(err_last));
+    printf("in %s(%d)\n", file, line);
+    std::exit(EXIT_FAILURE);
+  }
+#if 0 //Additional checks
+  cudaError_t err_sync = cudaDeviceSynchronize();
+  if (err_sync != cudaSuccess) {
+    printf("CUDA sync error: %s - %s\n", cudaGetErrorName(err_sync), cudaGetErrorString(err_sync));
+    printf("in %s(%d)\n", file, line);
+    std::exit(EXIT_FAILURE);
+  }
+#endif
+}
