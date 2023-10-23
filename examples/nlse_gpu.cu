@@ -24,7 +24,7 @@ int main()
   using clock = std::chrono::high_resolution_clock;
 
   int num_modes = 2;
-  int num_time_points = 8193; //8192;
+  int num_time_points = 8193;
 
   Array2D<double> beta_mat_5x8 = 
     {{ 0.00000000e+00, -5.31830434e+03, -5.31830434e+03, -1.06910098e+04, -1.06923559e+04, -1.07426928e+04, -2.16527479e+04, -3.26533894e+04},
@@ -63,13 +63,13 @@ int main()
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  double z_start = 0, z_end = 7.5; //[m]
-  int nz = 10; //15000*20;
-  int storage_stride = 100*20;
-
-  // double z_start = 0, z_end = 1.0; //[m]
-  // int nz = 2000*20;
+  // double z_start = 0, z_end = 7.5; //[m]
+  // int nz = 15000*20;
   // int storage_stride = 100*20;
+
+  double z_start = 0, z_end = 1.0; //[m]
+  int nz = 2000*20;
+  int storage_stride = 100*20;
 
   const int order = 4;
   RungeKutta<Complex> solver(ode, order);
@@ -91,14 +91,13 @@ int main()
     std::cout << "Writing solution file: " << filename << std::endl;
     std::ofstream f(filename, std::ios_base::out | std::ios::binary);
     f << std::setprecision(6) << std::scientific;
-    const int offset = mode*num_time_points;
     for (int i = 0; i < sol_hist.GetNumSteps(); ++i)
     {
       if (i % storage_stride == 0)
       {
       for (int j = 0; j < num_time_points-1; ++j)
-        f << abs(sol_hist(i, offset + j)) << ", ";
-      f << abs(sol_hist(i, offset + num_time_points-1)) << std::endl;
+        f << abs(sol_hist(i, j*num_modes + mode)) << ", ";
+      f << abs(sol_hist(i, (num_time_points-1)*num_modes + mode)) << std::endl;
       }
     }
     f.close();

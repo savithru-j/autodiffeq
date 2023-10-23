@@ -11,7 +11,7 @@ for mode in range(0,2):
   Nt = data.shape[1];
 
   tvec = np.linspace(-40.0, 40.0, Nt);
-  zvec = np.linspace(0.0, 1.0, Nz);
+  zvec = np.linspace(0.0, 7.5, Nz);
   tmat, zmat = np.meshgrid(tvec, zvec);
 
   # log_data = np.log10(np.clip(data, 1e-16, None));

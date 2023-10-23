@@ -16,33 +16,72 @@ namespace gpu
 template<typename T>
 __global__
 void mmnlseRHS(const int num_modes, const int num_time_pts, const DeviceArray2D<double>& beta_mat, 
-               const DeviceArray1D<T>& sol, DeviceArray1D<T>& rhs)
+               const double dt, const DeviceArray1D<T>& sol, DeviceArray1D<T>& rhs)
 {
-  const int i = blockIdx.x*blockDim.x + threadIdx.x; //time-point index
+  const int t = blockIdx.x*blockDim.x + threadIdx.x; //time-point index
   const int p = threadIdx.y; //mode index (blockIdx.y is always 0 since only 1 block is launched in this dimension)
-  const int offset = num_modes*i + p;
+  const int offset = num_modes*t + p;
   int soldim = sol.size();
+
+  const int num_deriv_rows = beta_mat.GetNumRows();
+  const int beta_size = num_deriv_rows * num_modes;
+  constexpr int stencil_size = 5;
 
   extern __shared__ double array[];
   double* beta = array; // num_deriv_rows x num_modes doubles
+  T* sol_stencil_shared = (T*) &beta[beta_size]; // (num_threads * stencil_size * num_modes) variables of type T
 
-  // printf("%d, %d\n", i, p);
-  const int num_deriv_rows = beta_mat.GetNumRows();
-  for (int i = 0; i < num_deriv_rows; ++i)
-    for (int j = 0; j < num_modes; ++j)
-      beta[i*num_modes+j] = beta_mat(i,j);
+  if (t < num_deriv_rows)
+    beta[offset] = beta_mat(t,p);
+
+  int shared_offset = threadIdx.x * stencil_size * num_modes;
+  T* sol_stencil = sol_stencil_shared + shared_offset;
+  if (t < num_time_pts)
+  {
+    for (int i = 0; i < stencil_size; ++i)
+    {
+      int t_offset = t + i - 2;
+      if (t_offset < 0)
+        t_offset = -t_offset; //Mirror data at left boundary
+      if (t_offset >= num_time_pts)
+        t_offset = 2*num_time_pts - 2 - t_offset; //Mirror data at right boundary
+
+      sol_stencil[num_modes*i + p] = sol[num_modes*t_offset + p];
+    }
+  }
+
+  __syncthreads();
+
+  if (offset >= soldim)
+    return;
   
   // printf("%f, %f, %f, %f\n", beta_mat[0], beta_mat[1], beta_mat[2], beta_mat[3]);
-  printf("%f, %f, %f, %f\n", beta[0], beta[1], beta[2], beta[3]);
-
+  // printf("%f, %f, %f, %f\n", beta[0], beta[1], beta[2], beta[3]);
   constexpr double inv6 = 1.0/6.0;
   constexpr double inv24 = 1.0/24.0;
-  constexpr complex<double> imag(0.0, 1.0);
+  constexpr T imag(0.0, 1.0);
+  const double inv_dt = 1.0/dt;
+  const double inv_dt2 = inv_dt*inv_dt;
+  const double inv_dt3 = inv_dt2*inv_dt;
+  const double inv_dt4 = inv_dt3*inv_dt;
 
-  if (offset < soldim) 
-  {
-    rhs[i] = sol[i];
-  }
+  T sol_im2 = sol_stencil[              p];
+  T sol_im1 = sol_stencil[num_modes   + p];
+  T sol_i   = sol_stencil[num_modes*2 + p];
+  T sol_ip1 = sol_stencil[num_modes*3 + p];
+  T sol_ip2 = sol_stencil[num_modes*4 + p];
+
+  //Calculate solution time-derivatives using stencil data
+  T sol_tderiv1 = 0.5*(sol_ip1 - sol_im1) * inv_dt;
+  T sol_tderiv2 = (sol_ip1 - 2.0*sol_i + sol_im1) * inv_dt2;
+  T sol_tderiv3 = (0.5*sol_ip2 - sol_ip1 + sol_im1 - 0.5*sol_im2) * inv_dt3;
+  T sol_tderiv4 = (sol_ip2 - 4.0*sol_ip1 + 6.0*sol_i - 4.0*sol_im1 + sol_im2) * inv_dt4;
+
+  rhs[offset] = imag*(beta[            p] - beta[        0])*sol_i //(beta0p - beta00)
+                    -(beta[  num_modes+p] - beta[num_modes])*sol_tderiv1
+              - imag* beta[2*num_modes+p]*0.5               *sol_tderiv2
+                    + beta[3*num_modes+p]*inv6              *sol_tderiv3
+              + imag* beta[4*num_modes+p]*inv24             *sol_tderiv4;
 }
 
 
@@ -96,62 +135,38 @@ public:
 
   void EvalRHS(const GPUArray1D<T>& sol, int step, double z, GPUArray1D<T>& rhs)
   {
-    dim3 thread_dim(256,num_modes_,1);
+    constexpr int threads_per_block = 256;
+    dim3 thread_dim(threads_per_block, num_modes_, 1);
     dim3 block_dim((num_time_points_ + thread_dim.x-1) / thread_dim.x, 1, 1);
 
-    std::cout << "size: " << sizeof(double) << std::endl;
-    int shared_mem_bytes = beta_mat_.size()*sizeof(double);
+    constexpr int stencil_size = 5;
+    int shared_mem_bytes = beta_mat_.size()*sizeof(double)
+                         + (threads_per_block * stencil_size * num_modes_)*sizeof(T);
+    //std::cout << "shared mem bytes: " << shared_mem_bytes << std::endl;
 
     gpu::mmnlseRHS<<<block_dim, thread_dim, shared_mem_bytes>>>(
-      num_modes_, num_time_points_, beta_mat_.GetDeviceArray(),
+      num_modes_, num_time_points_, beta_mat_.GetDeviceArray(), dt_,
       sol.GetDeviceArray(), rhs.GetDeviceArray());
     cudaCheckLastError();
-#if 0
-    constexpr complex<double> imag(0.0, 1.0);
-    const auto beta00 = beta_mat_(0,0);
-    const auto beta10 = beta_mat_(1,0);
-    constexpr double inv6 = 1.0/6.0;
-    constexpr double inv24 = 1.0/24.0;
-    const complex<double> j_n_omega0_invc(0.0, n2_*omega0_/c_);
 
-    for (int p = 0; p < num_modes_; ++p)
+/*
+    static int iter = 0;
+    if (iter == 0)
     {
-      const int offset = p*num_time_points_;
-      const auto beta0p = beta_mat_(0,p);
-      const auto beta1p = beta_mat_(1,p);
-      const auto beta2p = beta_mat_(2,p);
-      const auto beta3p = beta_mat_(3,p);
-      const auto beta4p = beta_mat_(4,p);
-      ComputeTimeDerivativesOrder2(p, sol, sol_tderiv_);
-
-      #pragma omp for
-      for (int i = 0; i < num_time_points_; ++i) 
+      auto rhs_cpu = rhs.CopyToHost();
+      for (int i = 0; i < num_time_points_; ++i)
       {
-        rhs(offset+i) = imag*(beta0p - beta00)*sol(offset+i)
-                            -(beta1p - beta10)*sol_tderiv_(0,i) //d/dt
-                      - imag* beta2p*0.5      *sol_tderiv_(1,i) //d^2/dt^2
-                            + beta3p*inv6     *sol_tderiv_(2,i) //d^3/dt^3
-                      + imag* beta4p*inv24    *sol_tderiv_(3,i); //d^4/dt^4
-      }
-
-      if (is_nonlinear_)
-      {
-        ComputeKerrNonlinearity(p, sol);
-        if (is_self_steepening_)
+        for (int p = 0; p < num_modes_; ++p)
         {
-
-        }
-        else
-        {
-          #pragma omp for
-          for (int i = 0; i < num_time_points_; ++i) 
-          {
-            rhs(offset+i) += j_n_omega0_invc*kerr_(i);
-          }
+          const auto& v = rhs_cpu(num_modes_*i + p);
+          if (v.real() != 0.0 || v.imag() != 0.0)
+            std::cout << i << ", " << p << ": " << v.real() << ", " << v.imag() << std::endl;
         }
       }
+      exit(0);
     }
-#endif
+*/
+    iter++;
   }
 
   void ComputeKerrNonlinearity(const int p, const Array1D<T>& sol)
@@ -363,13 +378,12 @@ public:
 
     for (int mode = 0; mode < num_modes_; ++mode)
     {
-      const int offset = mode*num_time_points_;
       const double A = std::sqrt(1665.0*Et(mode) / ((double)num_modes_ * t_FWHM(mode) * std::sqrt(M_PI)));
       const double k = -1.665*1.665/(2.0*t_FWHM(mode)*t_FWHM(mode));
       const double& tc = t_center(mode);
 
       for (int j = 0; j < num_time_points_; ++j)
-        sol(offset + j) = A * std::exp(k*(tvec_(j)-tc)*(tvec_(j)-tc));
+        sol(j*num_modes_ + mode) = A * std::exp(k*(tvec_(j)-tc)*(tvec_(j)-tc));
     }
     return sol;
   }

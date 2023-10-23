@@ -15,9 +15,17 @@ endif()
 foreach(exampleSrc ${EXAMPLE_SRCS})
   #Extract the filename without an extension (NAME_WE)
   get_filename_component(exampleName ${exampleSrc} NAME_WE)
+  get_filename_component(exampleExt ${exampleSrc} EXT)
 
   #Add compile target
   add_executable(${exampleName} ${exampleSrc})
+
+  if (AUTODIFFEQ_ENABLE_CUDA)
+    if (exampleExt STREQUAL ".cu")
+      message(${exampleName} ${exampleExt})
+      target_compile_options(${exampleName} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--ptxas-options=-v>)
+    endif()
+  endif()
 
   #link to libraries and dependencies
   if (OpenMP_CXX_FOUND)
