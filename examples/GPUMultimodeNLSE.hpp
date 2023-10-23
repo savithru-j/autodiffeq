@@ -149,7 +149,7 @@ public:
       sol.GetDeviceArray(), rhs.GetDeviceArray());
     cudaCheckLastError();
 
-/*
+#if 0
     static int iter = 0;
     if (iter == 0)
     {
@@ -165,8 +165,8 @@ public:
       }
       exit(0);
     }
-*/
     iter++;
+#endif
   }
 
   void ComputeKerrNonlinearity(const int p, const Array1D<T>& sol)
