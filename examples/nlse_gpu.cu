@@ -63,13 +63,13 @@ int main()
   // for (int i = 0; i < num_time_points; ++i)
   //     std::cout << std::abs(sol0(i)) << ", " << std::abs(sol0(num_time_points + i)) << std::endl;
 
-  // double z_start = 0, z_end = 7.5; //[m]
-  // int nz = 15000*20;
-  // int storage_stride = 100*20;
-
-  double z_start = 0, z_end = 1.0; //[m]
-  int nz = 2000*20;
+  double z_start = 0, z_end = 7.5; //[m]
+  int nz = 15000*20;
   int storage_stride = 100*20;
+
+  // double z_start = 0, z_end = 1.0; //[m]
+  // int nz = 2000*20;
+  // int storage_stride = 100*20;
 
   const int order = 4;
   RungeKutta<Complex> solver(ode, order);
@@ -102,7 +102,4 @@ int main()
     }
     f.close();
   }
-
-
-  // std::cout << sol_hist << std::endl;
 }

@@ -31,8 +31,8 @@ void mmnlseRHS(const int num_modes, const int num_time_pts, const DeviceArray2D<
   double* beta = array; // num_deriv_rows x num_modes doubles
   T* sol_stencil_shared = (T*) &beta[beta_size]; // (num_threads * stencil_size * num_modes) variables of type T
 
-  if (t < num_deriv_rows)
-    beta[offset] = beta_mat(t,p);
+  if (threadIdx.x < num_deriv_rows)
+    beta[threadIdx.x*num_modes+p] = beta_mat(threadIdx.x,p);
 
   int shared_offset = threadIdx.x * stencil_size * num_modes;
   T* sol_stencil = sol_stencil_shared + shared_offset;
@@ -54,9 +54,7 @@ void mmnlseRHS(const int num_modes, const int num_time_pts, const DeviceArray2D<
 
   if (offset >= soldim)
     return;
-  
-  // printf("%f, %f, %f, %f\n", beta_mat[0], beta_mat[1], beta_mat[2], beta_mat[3]);
-  // printf("%f, %f, %f, %f\n", beta[0], beta[1], beta[2], beta[3]);
+
   constexpr double inv6 = 1.0/6.0;
   constexpr double inv24 = 1.0/24.0;
   constexpr T imag(0.0, 1.0);
@@ -76,6 +74,18 @@ void mmnlseRHS(const int num_modes, const int num_time_pts, const DeviceArray2D<
   T sol_tderiv2 = (sol_ip1 - 2.0*sol_i + sol_im1) * inv_dt2;
   T sol_tderiv3 = (0.5*sol_ip2 - sol_ip1 + sol_im1 - 0.5*sol_im2) * inv_dt3;
   T sol_tderiv4 = (sol_ip2 - 4.0*sol_ip1 + 6.0*sol_i - 4.0*sol_im1 + sol_im2) * inv_dt4;
+
+#if 0
+  if (t == 128 && p == 0) {
+    printf("sol re: %e, %e, %e, %e, %e\n", sol_im2.real(), sol_im1.real(), sol_i.real(), sol_ip1.real(), sol_ip2.real());
+    printf("sol im: %e, %e, %e, %e, %e\n", sol_im2.imag(), sol_im1.imag(), sol_i.imag(), sol_ip1.imag(), sol_ip2.imag());
+    printf("tderiv1: %e, %e\n", sol_tderiv1.real(), sol_tderiv1.imag());
+    printf("tderiv2: %e, %e\n", sol_tderiv2.real(), sol_tderiv2.imag());
+    printf("tderiv3: %e, %e\n", sol_tderiv3.real(), sol_tderiv3.imag());
+    printf("tderiv4: %e, %e\n", sol_tderiv4.real(), sol_tderiv4.imag());
+    printf("beta: %e, %e, %e, %e, %e\n", beta[p], beta[num_modes+p], beta[2*num_modes+p], beta[3*num_modes+p], beta[4*num_modes+p]);
+  }
+#endif
 
   rhs[offset] = imag*(beta[            p] - beta[        0])*sol_i //(beta0p - beta00)
                     -(beta[  num_modes+p] - beta[num_modes])*sol_tderiv1
@@ -138,6 +148,8 @@ public:
     constexpr int threads_per_block = 256;
     dim3 thread_dim(threads_per_block, num_modes_, 1);
     dim3 block_dim((num_time_points_ + thread_dim.x-1) / thread_dim.x, 1, 1);
+    //std::cout << "thread_dim: " << thread_dim.x << ", " << thread_dim.y << ", " << thread_dim.z << std::endl;
+    //std::cout << "block_dim: " << block_dim.x << ", " << block_dim.y << ", " << block_dim.z << std::endl;
 
     constexpr int stencil_size = 5;
     int shared_mem_bytes = beta_mat_.size()*sizeof(double)
@@ -189,183 +201,6 @@ public:
         }
       }
       kerr_(i) = sum;
-    }
-  }
-
-  void ComputeTimeDerivativesOrder2(const int mode, const Array1D<T>& sol, Array2D<T>& tderiv)
-  {
-    const int offset = mode*num_time_points_;
-    const int max_deriv = tderiv.GetNumRows();
-    assert(max_deriv >= 2 && max_deriv <= 4);
-
-    const double inv_dt2 = 1.0 / (dt_*dt_);
-
-    #pragma omp single
-    {
-      //First derivative d/dt
-      tderiv(0,0) = 0.0;
-      tderiv(0,num_time_points_-1) = 0.0;
-
-      //Second derivative d^2/dt^2
-      tderiv(1,0) = 2.0*(sol(offset+1) - sol(offset))*inv_dt2;
-      tderiv(1,num_time_points_-1) = 2.0*(sol(offset+num_time_points_-2) 
-                                        - sol(offset+num_time_points_-1))*inv_dt2;
-    }
-
-    #pragma omp for
-    for (int i = 1; i < num_time_points_-1; ++i)
-    {
-      tderiv(0,i) = (sol(offset+i+1) - sol(offset+i-1))/(2.0*dt_); //d/dt
-      tderiv(1,i) = (sol(offset+i+1) - 2.0*sol(offset+i) + sol(offset+i-1))*inv_dt2; //d^2/dt^2
-    }
-
-    if (max_deriv >= 3)
-    {
-      const double inv_dt3 = 1.0 / (dt_*dt_*dt_);
-
-      #pragma omp single
-      {
-        //Third derivative d^3/dt^3
-        tderiv(2,0) = 0.0;
-        tderiv(2,1) = (0.5*sol(offset+3) - sol(offset+2) 
-                        + sol(offset) - 0.5*sol(offset+1))*inv_dt3;
-        tderiv(2,num_time_points_-2) = (0.5*sol(offset+num_time_points_-2) - sol(offset+num_time_points_-1) 
-                                          + sol(offset+num_time_points_-3) - 0.5*sol(offset+num_time_points_-4))*inv_dt3;
-        tderiv(2,num_time_points_-1) = 0.0;
-      }
-
-      #pragma omp for
-      for (int i = 2; i < num_time_points_-2; ++i)
-      {
-        tderiv(2,i) = (0.5*sol(offset+i+2) - sol(offset+i+1) 
-                         + sol(offset+i-1) - 0.5*sol(offset+i-2))*inv_dt3; //d^3/dt^3
-      }
-    }
-
-    if (max_deriv >= 4)
-    {
-      const double inv_dt4 = 1.0 / (dt_*dt_*dt_*dt_);
-
-      #pragma omp single
-      {
-        //Fourth derivative d^4/dt^4
-        tderiv(3,0) = (2.0*sol(offset+2) - 8.0*sol(offset+1) + 6.0*sol(offset))*inv_dt4;
-        tderiv(3,1) = (sol(offset+3) - 4.0*sol(offset+2) + 7.0*sol(offset+1) - 4.0*sol(offset))*inv_dt4;
-        tderiv(3,num_time_points_-2) = (- 4.0*sol(offset+num_time_points_-1) + 7.0*sol(offset+num_time_points_-2)  
-                                        - 4.0*sol(offset+num_time_points_-3) +     sol(offset+num_time_points_-4))*inv_dt4;
-        tderiv(3,num_time_points_-1) = (2.0*sol(offset+num_time_points_-3) - 8.0*sol(offset+num_time_points_-2) 
-                                      + 6.0*sol(offset+num_time_points_-1))*inv_dt4;
-      }
-
-      #pragma omp for
-      for (int i = 2; i < num_time_points_-2; ++i)
-      {
-        tderiv(3,i) = (sol(offset+i+2) - 4.0*sol(offset+i+1) + 6.0*sol(offset+i)  
-                 - 4.0*sol(offset+i-1) +     sol(offset+i-2))*inv_dt4; //d^4/dt^4
-      }
-    }
-  }
-
-  void ComputeTimeDerivativesOrder4(const int mode, const Array1D<T>& sol, Array2D<T>& tderiv)
-  {
-    const int offset = mode*num_time_points_;
-    const int max_deriv = tderiv.GetNumRows();
-    assert(max_deriv >= 2 && max_deriv <= 4);
-
-    const double inv_12dt = 1.0/(12.0*dt_);
-    const double inv_12dt2 = inv_12dt / dt_;
-
-    #pragma omp single
-    {
-      //First derivative d/dt
-      tderiv(0,0) = 0.0;
-      tderiv(0,1) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+2)) - sol(offset+3))*inv_12dt;
-      tderiv(0,num_time_points_-2) = (sol(offset+num_time_points_-4) - 8.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) 
-                                    -sol(offset+num_time_points_-2))*inv_12dt;
-      tderiv(0,num_time_points_-1) = 0.0;
-
-      //Second derivative d^2/dt^2
-      tderiv(1,0) = (-2.0*sol(offset+2) + 32.0*sol(offset+1) - 30.0*sol(offset))*inv_12dt2;
-      tderiv(1,1) = (-31.0*sol(offset+1) + 16.0*(sol(offset) + sol(offset+2)) - sol(offset+3))*inv_12dt2;
-      tderiv(1,num_time_points_-2) = (-sol(offset+num_time_points_-4) + 16.0*(sol(offset+num_time_points_-3) + sol(offset+num_time_points_-1))
-                                      - 31.0*sol(offset+num_time_points_-2))*inv_12dt2;
-      tderiv(1,num_time_points_-1) = (-2.0*sol(offset+num_time_points_-3) + 32.0*sol(offset+num_time_points_-2)
-                                    - 30.0*sol(offset+num_time_points_-1))*inv_12dt2;
-    }
-
-    #pragma omp for
-    for (int i = 2; i < num_time_points_-2; ++i)
-    {
-      tderiv(0,i) = (sol(offset+i-2) - 8.0*(sol(offset+i-1) - sol(offset+i+1)) - sol(offset+i+2))*inv_12dt; //d/dt
-      tderiv(1,i) = (-sol(offset+i-2) + 16.0*(sol(offset+i-1) + sol(offset+i+1))
-                     - 30.0*sol(offset+i) - sol(offset+i+2))*inv_12dt2; //d^2/dt^2
-    }
-
-    if (max_deriv >= 3)
-    {
-      const double inv_8dt3 = 1.0 / (8.0*dt_*dt_*dt_);
-
-      //Third derivative d^3/dt^3
-      #pragma omp single
-      {
-        tderiv(2,0) = 0.0;
-        tderiv(2,1) = (sol(offset+2) - 8.0*(sol(offset+1) - sol(offset+3)) 
-                      + 13.0*(sol(offset) - sol(offset+2)) - sol(offset+4))*inv_8dt3;
-        tderiv(2,2) = (sol(offset+1) - 8.0*(sol(offset) - sol(offset+4)) 
-                      + 13.0*(sol(offset+1) - sol(offset+3)) - sol(offset+5))*inv_8dt3;
-      }
-
-      #pragma omp for
-      for (int i = 3; i < num_time_points_-3; ++i)
-      {
-        tderiv(2,i) = (sol(offset+i-3) - 8.0*(sol(offset+i-2) - sol(offset+i+2)) 
-                       + 13.0*(sol(offset+i-1) - sol(offset+i+1)) - sol(offset+i+3))*inv_8dt3; //d^3/dt^3
-      }
-
-      #pragma omp single
-      {
-        tderiv(2,num_time_points_-3) = (sol(offset+num_time_points_-6) - 8.0*(sol(offset+num_time_points_-5) - sol(offset+num_time_points_-1)) 
-                                        + 13.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) - sol(offset+num_time_points_-2))*inv_8dt3;
-        tderiv(2,num_time_points_-2) = (sol(offset+num_time_points_-5) - 8.0*(sol(offset+num_time_points_-4) - sol(offset+num_time_points_-2)) 
-                                        + 13.0*(sol(offset+num_time_points_-3) - sol(offset+num_time_points_-1)) - sol(offset+num_time_points_-3))*inv_8dt3;
-        tderiv(2,num_time_points_-1) = 0.0;
-      }
-    }
-
-    if (max_deriv >= 4)
-    {
-      const double inv_6dt4 = 1.0 / (6.0*dt_*dt_*dt_*dt_);
-
-      //Fourth derivative d^4/dt^4
-      #pragma omp single
-      {
-        tderiv(3,0) = (- 2.0*sol(offset+3) + 24.0*sol(offset+2) - 78.0*sol(offset+1) + 56.0*sol(offset))*inv_6dt4;
-        tderiv(3,1) = (-      (sol(offset+2) + sol(offset+4)) + 12.0*(sol(offset+1) + sol(offset+3))
-                        - 39.0*(sol(offset) + sol(offset+2)) + 56.0* sol(offset+1))*inv_6dt4;
-        tderiv(3,2) = (-      (sol(offset+1) + sol(offset+5)) + 12.0*(sol(offset) + sol(offset+4))
-                       - 39.0*(sol(offset+1) + sol(offset+3)) + 56.0* sol(offset+2))*inv_6dt4;
-      }
-
-      #pragma omp for
-      for (int i = 3; i < num_time_points_-3; ++i)
-      {
-        tderiv(3,i) = (-      (sol(offset+i-3) + sol(offset+i+3)) + 12.0*(sol(offset+i-2) + sol(offset+i+2))
-                       - 39.0*(sol(offset+i-1) + sol(offset+i+1)) + 56.0* sol(offset+i))*inv_6dt4; //d^4/dt^4
-      }
-
-      #pragma omp single
-      {                     
-        tderiv(3,num_time_points_-3) = (-      (sol(offset+num_time_points_-6) + sol(offset+num_time_points_-2)) 
-                                        + 12.0*(sol(offset+num_time_points_-5) + sol(offset+num_time_points_-1))
-                                        - 39.0*(sol(offset+num_time_points_-4) + sol(offset+num_time_points_-2)) 
-                                        + 56.0* sol(offset+num_time_points_-3))*inv_6dt4;
-        tderiv(3,num_time_points_-2) = (-      (sol(offset+num_time_points_-5) + sol(offset+num_time_points_-3)) 
-                                        + 12.0*(sol(offset+num_time_points_-4) + sol(offset+num_time_points_-2))
-                                        - 39.0*(sol(offset+num_time_points_-3) + sol(offset+num_time_points_-1)) 
-                                        + 56.0* sol(offset+num_time_points_-2))*inv_6dt4;
-        tderiv(3,num_time_points_-1) = (-  2.0*sol(offset+num_time_points_-4) + 24.0*sol(offset+num_time_points_-3)
-                                        - 78.0*sol(offset+num_time_points_-2) + 56.0*sol(offset+num_time_points_-1))*inv_6dt4;
-      }
     }
   }
 
