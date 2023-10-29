@@ -13,6 +13,15 @@ SET(CMAKE_CXX_EXTENSIONS OFF) #without compiler extensions like gnu++11
 MESSAGE( "CMAKE_SOURCE_DIR:" ${CMAKE_SOURCE_DIR} )
 MESSAGE( "CMAKE_BINARY_DIR:" ${CMAKE_BINARY_DIR} )
 
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+  set(IS_TOPLEVEL_PROJECT TRUE)
+else()
+  set(IS_TOPLEVEL_PROJECT FALSE)
+endif()
+
+option(AUTODIFFEQ_INSTALL_LIBRARY "Install library into default locations" ${IS_TOPLEVEL_PROJECT})
+option(AUTODIFFEQ_BUILD_TESTS "Build and run tests " ${IS_TOPLEVEL_PROJECT})
+
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake )
 
 OPTION(AUTODIFFEQ_ENABLE_OPENMP "Enable OpenMP" ON )
@@ -47,30 +56,26 @@ INCLUDE(CheckCXXSourceRuns)
 # Include the cmake variables with values for installation directories
 include(GNUInstallDirs)
 
-#Enable testing for the project
-enable_testing()
-
-# Configure google-test an external library.
-ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/externals)
-INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/externals)
-
-INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
- 
-#Bring the headers into the project
-#INCLUDE_DIRECTORIES(src test)
-
-INCLUDE( cmake/CompileFlags.cmake )
-#INCLUDE( CMakeInclude/Dependencies.cmake )
-
-SET(LIBS 
-    # libNumerics
-   )
-
-set(LIB_NAME ${PROJECT_NAME})
+INCLUDE(cmake/CompileFlags.cmake)
    
-ADD_SUBDIRECTORY( autodiffeq )
-ADD_SUBDIRECTORY( examples )
-ADD_SUBDIRECTORY( test )
+ADD_SUBDIRECTORY(autodiffeq)
+ADD_SUBDIRECTORY(examples)
 
-# Install the cmake config files that permit users to use find_package(autodiff)
-include(autodiffeqInstallCMakeConfigFiles)
+if(AUTODIFFEQ_BUILD_TESTS)
+  #Enable testing for the project
+  enable_testing()
+
+  # Configure google-test an external library.
+  ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/externals)
+  INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/externals)
+
+  INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
+  ADD_SUBDIRECTORY(test)
+endif()
+
+if(AUTODIFFEQ_INSTALL_LIBRARY)
+  # Install the cmake config files that permit users to use find_package(autodiff)
+  include(autodiffeqInstallCMakeConfigFiles)
+endif()
+
+
