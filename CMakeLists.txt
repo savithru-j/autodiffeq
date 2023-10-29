@@ -10,9 +10,6 @@ SET(CMAKE_CXX_STANDARD 14)
 SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 SET(CMAKE_CXX_EXTENSIONS OFF) #without compiler extensions like gnu++11
 
-MESSAGE( "CMAKE_SOURCE_DIR:" ${CMAKE_SOURCE_DIR} )
-MESSAGE( "CMAKE_BINARY_DIR:" ${CMAKE_BINARY_DIR} )
-
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
   set(IS_TOPLEVEL_PROJECT TRUE)
 else()
@@ -22,8 +19,6 @@ endif()
 option(AUTODIFFEQ_INSTALL_LIBRARY "Install library into default locations" ${IS_TOPLEVEL_PROJECT})
 option(AUTODIFFEQ_BUILD_TESTS "Build and run tests" ${IS_TOPLEVEL_PROJECT})
 option(AUTODIFFEQ_BUILD_EXAMPLES "Build examples" ${IS_TOPLEVEL_PROJECT})
-
-LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake )
 
 OPTION(AUTODIFFEQ_ENABLE_OPENMP "Enable OpenMP" ON )
 IF(AUTODIFFEQ_ENABLE_OPENMP)
@@ -55,7 +50,7 @@ INCLUDE(CheckCXXSourceCompiles)
 INCLUDE(CheckCXXSourceRuns)
 
 # Include the cmake variables with values for installation directories
-include(GNUInstallDirs)
+INCLUDE(GNUInstallDirs)
 
 INCLUDE(cmake/CompileFlags.cmake)
    
@@ -79,7 +74,7 @@ endif()
 
 if(AUTODIFFEQ_INSTALL_LIBRARY)
   # Install the cmake config files that permit users to use find_package(autodiff)
-  include(autodiffeqInstallCMakeConfigFiles)
+  INCLUDE(cmake/autodiffeqInstallCMakeConfigFiles.cmake)
 endif()
 
 
