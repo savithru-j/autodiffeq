@@ -20,7 +20,8 @@ else()
 endif()
 
 option(AUTODIFFEQ_INSTALL_LIBRARY "Install library into default locations" ${IS_TOPLEVEL_PROJECT})
-option(AUTODIFFEQ_BUILD_TESTS "Build and run tests " ${IS_TOPLEVEL_PROJECT})
+option(AUTODIFFEQ_BUILD_TESTS "Build and run tests" ${IS_TOPLEVEL_PROJECT})
+option(AUTODIFFEQ_BUILD_EXAMPLES "Build examples" ${IS_TOPLEVEL_PROJECT})
 
 LIST(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake )
 
@@ -59,7 +60,10 @@ include(GNUInstallDirs)
 INCLUDE(cmake/CompileFlags.cmake)
    
 ADD_SUBDIRECTORY(autodiffeq)
-ADD_SUBDIRECTORY(examples)
+
+if(AUTODIFFEQ_BUILD_EXAMPLES)
+  ADD_SUBDIRECTORY(examples)
+endif()
 
 if(AUTODIFFEQ_BUILD_TESTS)
   #Enable testing for the project
