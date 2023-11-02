@@ -19,6 +19,8 @@ public:
   Array3D() = default;
   Array3D(int m, int n, int p) : dims_({m,n,p}), data_(m*n*p) {}
   Array3D(int m, int n, int p, const T& val) : dims_({m,n,p}), data_(m*n*p, val) {}
+  Array3D(const std::array<int,3>& dims) : dims_(dims), data_(dims[0]*dims[1]*dims[2]) {}
+  Array3D(const std::array<int,3>& dims, const T& val) : dims_(dims), data_(dims[0]*dims[1]*dims[2], val) {}
 
   Array3D(int m, int n, int p, const std::vector<T>& data) : dims_({m,n,p})
   {

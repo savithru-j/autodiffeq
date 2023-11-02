@@ -165,7 +165,7 @@ protected:
 
   inline void CreateDeviceArray() {
     if (!arr_d_)
-      cudaCheckError(cudaMalloc(&arr_d_, sizeof(DeviceArray1D<T>)));
+      cudaCheckError(cudaMalloc(&arr_d_, sizeof(DeviceArray2D<T>)));
   }
 
   DeviceArray2D<T> arr_h_; //host side struct

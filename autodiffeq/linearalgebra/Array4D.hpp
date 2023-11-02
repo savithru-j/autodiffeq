@@ -19,6 +19,10 @@ public:
   Array4D() = default;
   Array4D(int m, int n, int p, int q) : dims_({m,n,p,q}), data_(m*n*p*q) {}
   Array4D(int m, int n, int p, int q, const T& val) : dims_({m,n,p,q}), data_(m*n*p*q, val) {}
+  Array4D(const std::array<int,4>& dims) : 
+    dims_(dims), data_(dims[0]*dims[1]*dims[2]*dims[3]) {}
+  Array4D(const std::array<int,4>& dims, const T& val) : 
+    dims_(dims), data_(dims[0]*dims[1]*dims[2]*dims[3], val) {}
 
   Array4D(int m, int n, int p, int q, const std::vector<T>& data) : dims_({m,n,p,q})
   {
