@@ -22,12 +22,20 @@ public:
   friend class GPUArray4D<T>;
 
   DeviceArray4D() = default;
-  DeviceArray4D(int m, int n, int p, int q, T* data) : dims_({m,n,p,q}), data_(data) {}
+  DeviceArray4D(int m, int n, int p, int q, T* data) : data_(data) 
+  {
+    dims_[0] = m;
+    dims_[1] = n;
+    dims_[2] = p;
+    dims_[3] = q;
+  }
 
   ~DeviceArray4D() = default;
 
   inline __host__ __device__ int GetDim(int axis) const { return dims_[axis]; }
-  inline __host__ __device__ const std::array<int,4>& GetDimensions() const { return dims_; }
+  inline __host__ __device__ std::array<int,4> GetDimensions() const { 
+    return {dims_[0], dims_[1], dims_[2], dims_[3]}; 
+  }
   inline __host__ __device__ std::size_t size() const { return dims_[0]*dims_[1]*dims_[2]*dims_[3]; }
   inline __host__ __device__ const T* data() const { return data_; }
   inline __host__ __device__ T* data() { return data_; }
@@ -43,7 +51,7 @@ public:
   inline __host__ __device__ T& operator[](int i) { return data_[i]; }
 
 protected:
-  std::array<int,4> dims_;
+  int dims_[4];
   T* data_ = nullptr; //pointer to array data on device
 };
 
@@ -82,7 +90,7 @@ public:
   }
 
   inline int GetDim(int axis) const { return arr_h_.dims_[axis]; }
-  inline const std::array<int,4>& GetDimensions() const { return arr_h_.dims_; }
+  inline std::array<int,4> GetDimensions() const { return arr_h_.GetDimensions(); }
   inline std::size_t size() const { return arr_h_.size(); }
 
   const DeviceArray4D<T>& GetDeviceArray() const { return *arr_d_; }
@@ -122,7 +130,7 @@ public:
   }
 
   inline Array4D<T> CopyToHost() const {
-    Array4D<T> mat_h(arr_h_.dims_);
+    Array4D<T> mat_h(arr_h_.GetDimensions());
     cudaCheckError(cudaMemcpy(mat_h.GetDataVector().data(), arr_h_.data_, arr_h_.size()*sizeof(T), cudaMemcpyDeviceToHost));
     return mat_h;
   }
