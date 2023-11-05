@@ -10,7 +10,7 @@ ExternalProject_Add(
     -DBUILD_GMOCK=false
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/externals/googletest/"
   BUILD_IN_SOURCE 0
-  BUILD_COMMAND make -j4
+  BUILD_COMMAND cmake --build "${CMAKE_BINARY_DIR}/externals/googletest/build"
   BINARY_DIR "${CMAKE_BINARY_DIR}/externals/googletest/build"
   INSTALL_COMMAND ""
   INSTALL_DIR "${CMAKE_BINARY_DIR}/externals/googletest/install"
