@@ -3,6 +3,7 @@
 // Copyright (c) 2023, Savithru Jayasinghe
 
 #include <gtest/gtest.h>
+#define _USE_MATH_DEFINES //For MSVC
 #include <autodiffeq/numerics/ADVar.hpp>
 #include <autodiffeq/numerics/Complex.hpp>
 
