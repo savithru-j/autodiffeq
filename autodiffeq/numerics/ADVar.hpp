@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <initializer_list>
+#define _USE_MATH_DEFINES //For MSVC
 #include <cmath>
 #include <ostream>
 
