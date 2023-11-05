@@ -64,11 +64,16 @@ if(AUTODIFFEQ_BUILD_TESTS)
   #Enable testing for the project
   enable_testing()
 
-  # Configure google-test an external library.
-  ADD_SUBDIRECTORY(${CMAKE_SOURCE_DIR}/externals)
-  INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR}/externals)
+  INCLUDE(FetchContent)
+    FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/03597a01ee50ed33e9dfd640b249b4be3799d395.zip
+  )
+  # For Windows: Prevent overriding the parent project's compiler/linker settings
+  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+  FetchContent_MakeAvailable(googletest)
 
-  INCLUDE_DIRECTORIES(${GTEST_INCLUDE_DIR})
+  #Add all unit tests
   ADD_SUBDIRECTORY(test)
 endif()
 
