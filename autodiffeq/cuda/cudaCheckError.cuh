@@ -8,7 +8,7 @@
 #include <iostream>
 
 #define cudaCheckError(val) check_cuda_error((val), #val, __FILE__, __LINE__)
-void check_cuda_error(cudaError_t err, const char* const func, const char* const file,
+inline void check_cuda_error(cudaError_t err, const char* const func, const char* const file,
                       const int line)
 {
   if (err != cudaSuccess) {
@@ -35,7 +35,7 @@ void check_cuda_error(cudaError_t err, const char* const func, const char* const
 }
 
 #define cudaCheckLastError() check_cuda_last_error(__FILE__, __LINE__)
-void check_cuda_last_error(const char* const file, const int line)
+inline void check_cuda_last_error(const char* const file, const int line)
 {
   cudaError_t err_last = cudaGetLastError();
   if (err_last != cudaSuccess) {
