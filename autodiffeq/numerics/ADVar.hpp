@@ -10,6 +10,8 @@
 #include <cmath>
 #include <ostream>
 
+#include "Complex.hpp"
+
 #ifdef ENABLE_CUDA
 #define HOST __host__
 #define DEVICE __device__
@@ -212,6 +214,10 @@ public:
   template<typename U> friend ADVar<U> floor(const ADVar<U>& var);
   template<typename U> friend ADVar<U> abs(const ADVar<U>& var);
   template<typename U> friend ADVar<U> fabs(const ADVar<U>& var);
+
+  // complex functions
+  template<typename U> friend ADVar<complex<U>> abs(const ADVar<complex<U>>& var);
+  template<typename U> friend ADVar<complex<U>> conj(const ADVar<complex<U>>& var);
 
 protected:
 
@@ -718,6 +724,36 @@ ADVAR_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 ADVAR_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 
 // power functions
+
+// abs functions
+template<typename T>
+HOST DEVICE ADVar<T> abs(const ADVar<T>& var)
+{
+  return (var.v_ < 0) ? -var : var;
+}
+
+template<typename T>
+HOST DEVICE ADVar<complex<T>> abs(const ADVar<complex<T>>& var)
+{
+  T abs_val = abs(var.v_);
+  if (abs_val == 0)
+    return ADVar<complex<T>>(complex<T>(0,0));
+
+  T inv_abs  = T(1) / abs_val;
+  ADVar<complex<T>> z(complex<T>(abs_val, 0), var.N_);
+  for (unsigned int i = 0; i < var.N_; i++)
+    z.d_[i] = complex<T>(inv_abs*(var.v_.real()*var.d_[i].real() + var.v_.imag()*var.d_[i].imag()), 0);
+  return z;
+}
+
+template<typename T>
+HOST DEVICE ADVar<complex<T>> conj(const ADVar<complex<T>>& var)
+{
+  ADVar<complex<T>> z(conj(var.v_), var.N_);
+  for (unsigned int i = 0; i < var.N_; i++)
+    z.d_[i] = complex<T>(var.d_[i].real(), -var.d_[i].imag());
+  return z;
+}
 
 
 // ostream

@@ -394,3 +394,74 @@ TEST( ADVar, ErrorFunc )
     EXPECT_DOUBLE_EQ(z.deriv(1), -(2.0/sqrt(M_PI))*exp(-0.75*0.75)*-4.0);
   }
 }
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, Abs )
+{
+  {
+    ADVar<double> x(0.75, {3, -4});
+    auto z = abs(x);
+    EXPECT_DOUBLE_EQ(z.value(), 0.75);
+    EXPECT_DOUBLE_EQ(z.deriv(0), 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), -4.0);
+  }
+  {
+    ADVar<double> x(-0.75, {3, -4});
+    auto z = abs(x);
+    EXPECT_DOUBLE_EQ(z.value(), 0.75);
+    EXPECT_DOUBLE_EQ(z.deriv(0), -3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 4.0);
+  }
+  {
+    ADVar<double> x(0.0, {3, -4});
+    auto z = abs(x);
+    EXPECT_DOUBLE_EQ(z.value(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0), 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), -4.0);
+  }
+}
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, Complex )
+{
+  using Complex = complex<double>;
+  ADVar<Complex> x(Complex(0.75, -2.0), {Complex(3.0, 1.0), Complex(-4.0, 0.5)});
+  ADVar<Complex> y(Complex(-1.0, 0.25), {Complex(-0.1, 0.1), Complex(7.0, 2.0)});
+  {
+    auto z = x + y;
+    EXPECT_DOUBLE_EQ(z.value().real(), -0.25);
+    EXPECT_DOUBLE_EQ(z.value().imag(), -1.75);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 2.9);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 1.1);
+    EXPECT_DOUBLE_EQ(z.deriv(1).real(), 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1).imag(), 2.5);
+  }
+  {
+    auto z = x*y;
+    EXPECT_DOUBLE_EQ(z.value().real(), (0.75*-1.0) - (-2.0*0.25));
+    EXPECT_DOUBLE_EQ(z.value().imag(), (0.75*0.25) + (-1.0*-2.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), (0.75*-0.1) - (-2.0*0.1) + (-1.0*3.0) - (0.25*1.0));
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), (0.75*0.1) + (-2.0*-0.1) + (-1.0*1.0) + (0.25*3.0));
+    EXPECT_DOUBLE_EQ(z.deriv(1).real(), (0.75*7.0) - (-2.0*2.0) + (-1.0*-4.0) - (0.25*0.5));
+    EXPECT_DOUBLE_EQ(z.deriv(1).imag(), (0.75*2.0) + (-2.0*7.0) + (-1.0*0.5) + (0.25*-4.0));
+  }
+  {
+    auto z = abs(x);
+    double abs_val = sqrt(0.75*0.75 + (-2.0*-2.0));
+    EXPECT_DOUBLE_EQ(z.value().real(), abs_val);
+    EXPECT_DOUBLE_EQ(z.value().imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), (0.75*3.0 + (-2.0*1.0)) / abs_val);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1).real(), (0.75*-4.0 + (-2.0*0.5)) / abs_val);
+    EXPECT_DOUBLE_EQ(z.deriv(1).imag(), 0.0);
+  }
+  {
+    auto z = conj(x);
+    EXPECT_DOUBLE_EQ(z.value().real(), 0.75);
+    EXPECT_DOUBLE_EQ(z.value().imag(), 2.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), -1.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1).real(), -4.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1).imag(), -0.5);
+  }
+}
