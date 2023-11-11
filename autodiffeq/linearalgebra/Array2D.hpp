@@ -39,6 +39,12 @@ public:
     }
   }
 
+  Array2D(int m, int n, const std::vector<T>& data) : nrows_(m), ncols_(n)
+  {
+    assert(m*n == (int) data.size());
+    data_ = data;
+  }
+
   inline int GetNumRows() const { return nrows_; }
   inline int GetNumCols() const { return ncols_; }
   inline std::size_t size() const { return data_.size(); }
