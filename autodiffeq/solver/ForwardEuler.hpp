@@ -60,6 +60,8 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
+    const int print_interval = 0.1*(double) num_steps;
+
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
     sol_hist.SetSolution(0, sol0);
@@ -78,6 +80,11 @@ protected:
 
       if ((step+1) % storage_stride == 0)
         sol_hist.SetSolution(step+1, sol);
+
+      #pragma omp single
+      if (this->verbose_ && ((step+1) % print_interval == 0))
+        std::cout << " - step " << (step+1) << "/" << num_steps << std::endl;
+
       time += dt;
     }
 
@@ -91,6 +98,7 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
+    const int print_interval = 0.1*(double) num_steps;
 
     GPUArray1D<T> sol(sol0);
     const int sol_dim = sol0.size();
@@ -112,6 +120,10 @@ protected:
                                                    sol.GetDeviceArray());
       if ((step+1) % storage_stride == 0)
         gpu_hist.SetSolution(step+1, sol);
+
+      if (this->verbose_ && ((step+1) % print_interval == 0))
+        std::cout << " - step " << (step+1) << "/" << num_steps << std::endl;
+
       time += dt;
     }
 

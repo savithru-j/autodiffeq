@@ -37,10 +37,12 @@ public:
   }
 
   inline void SetSolveOnGPU(bool solve_on_gpu) { solve_on_gpu_ = solve_on_gpu; }
+  inline void SetVerbosity(bool verbose) { verbose_ = verbose; }
 
 protected:
   ODE<T>& ode_;
   bool solve_on_gpu_ = false;
+  bool verbose_ = false;
 };
 
 }

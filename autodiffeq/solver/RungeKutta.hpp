@@ -77,6 +77,8 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
+    const int print_interval = 0.1*(double) num_steps;
+
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
 
@@ -117,6 +119,11 @@ protected:
 
         if ((step+1) % storage_stride == 0)
           sol_hist.SetSolution(step+1, sol);
+
+        #pragma omp single
+        if (this->verbose_ && ((step+1) % print_interval == 0))
+          std::cout << " - step " << (step+1) << "/" << num_steps << std::endl;
+
         time += dt;
       }
     }
@@ -131,6 +138,8 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
+    const int print_interval = 0.1*(double) num_steps;
+
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
     sol_hist.SetSolution(0, sol0);
@@ -193,6 +202,10 @@ protected:
         if ((step+1) % storage_stride == 0)
           sol_hist.SetSolution(step+1, sol);
 
+        #pragma omp single
+        if (this->verbose_ && ((step+1) % print_interval == 0))
+          std::cout << " - step " << (step+1) << "/" << num_steps << std::endl;
+
         time += dt;
         ode_.EvalRHS(sol, 0, time, k1); //Seventh stage of current time-step is the same as the first stage of next time-step
       }
@@ -209,6 +222,8 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
+    const int print_interval = 0.1*(double) num_steps;
+
     const int sol_dim = sol0.size();
     GPUSolutionHistory<T> gpu_hist(sol_dim, time_vec, storage_stride);
 
@@ -246,6 +261,10 @@ protected:
 
       if ((step+1) % storage_stride == 0)
         gpu_hist.SetSolution(step+1, sol);
+
+      if (this->verbose_ && ((step+1) % print_interval == 0))
+        std::cout << " - step " << (step+1) << "/" << num_steps << std::endl;
+
       time += dt;
     }
 
@@ -259,7 +278,8 @@ protected:
   DOPRI5GPU(const Array1D<T>& sol0, const Array1D<double>& time_vec,
             const int storage_stride = 1)
   {
-    //TODO
+    std::cout << "DOPRI5 not implemented on GPU yet." << std::endl;
+    exit(1);
   }
 #endif
 
