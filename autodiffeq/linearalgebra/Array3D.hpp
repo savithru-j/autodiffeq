@@ -44,7 +44,7 @@ public:
   inline typename std::vector<T>::const_iterator cbegin() const { return data_.cbegin(); }
   inline typename std::vector<T>::const_iterator cend() const { return data_.cend(); }
 
-  inline void resize(int m, int n, int p, const T& val = 0.0) { 
+  inline void resize(int m, int n, int p, const T& val = T(0)) { 
     dims_ = {m, n, p};
     data_.resize(m*n*p, val); 
   }

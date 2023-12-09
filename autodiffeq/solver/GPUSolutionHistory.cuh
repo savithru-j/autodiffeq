@@ -53,7 +53,7 @@ public:
     if (time_vec.size() % storage_stride_ != 0)
       num_steps_stored_++;
     data_.Resize(num_steps_stored_,sol_dim_);
-    data_.SetValue(0);
+    data_.SetValue(T(0));
   }
 
   inline int GetSolutionSize() const { return sol_dim_; }

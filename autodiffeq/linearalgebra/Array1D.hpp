@@ -48,7 +48,7 @@ public:
   inline typename std::vector<T>::const_iterator cbegin() const { return data_.cbegin(); }
   inline typename std::vector<T>::const_iterator cend() const { return data_.cend(); }
 
-  inline void resize(std::size_t m, const T& val = 0.0) { data_.resize(m, val); }
+  inline void resize(std::size_t m, const T& val = T(0)) { data_.resize(m, val); }
 
   inline void clear() { data_.clear(); }
 

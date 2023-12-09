@@ -23,7 +23,7 @@ public:
     num_steps_stored_ = time_vec_.size() / storage_stride_;
     if (time_vec.size() % storage_stride_ != 0)
       num_steps_stored_++;
-    data_.resize(num_steps_stored_, sol_dim_, 0);
+    data_.resize(num_steps_stored_, sol_dim_, T(0));
   }
 
   inline int GetSolutionSize() const { return sol_dim_; }
