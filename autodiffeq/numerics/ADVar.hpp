@@ -8,6 +8,7 @@
 #include <initializer_list>
 #define _USE_MATH_DEFINES //For MSVC
 #include <cmath>
+#include <limits>
 #include <ostream>
 
 #include "Complex.hpp"
@@ -736,7 +737,8 @@ template<typename T>
 HOST DEVICE ADVar<complex<T>> abs(const ADVar<complex<T>>& var)
 {
   T abs_val = abs(var.v_);
-  if (abs_val == 0)
+  if (abs_val == 0 || (std::is_floating_point<T>::value && 
+                       abs_val < 10*std::numeric_limits<T>::min()))
     return ADVar<complex<T>>(complex<T>(0,0));
 
   T inv_abs  = T(1) / abs_val;

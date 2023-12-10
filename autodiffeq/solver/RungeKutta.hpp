@@ -77,7 +77,7 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
-    const int print_interval = 0.1*(double) num_steps;
+    const int print_interval = std::max((int)(0.1*num_steps), 1);
 
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
@@ -138,7 +138,7 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
-    const int print_interval = 0.1*(double) num_steps;
+    const int print_interval = std::max((int)(0.1*num_steps), 1);
 
     const int sol_dim = sol0.size();
     SolutionHistory<T> sol_hist(sol_dim, time_vec, storage_stride);
@@ -222,7 +222,7 @@ protected:
   {
     const int num_steps = time_vec.size() - 1;
     assert(num_steps >= 1);
-    const int print_interval = 0.1*(double) num_steps;
+    const int print_interval = std::max((int)(0.1*num_steps), 1);
 
     const int sol_dim = sol0.size();
     GPUSolutionHistory<T> gpu_hist(sol_dim, time_vec, storage_stride);
