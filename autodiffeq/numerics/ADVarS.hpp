@@ -207,6 +207,7 @@ public:
   // complex functions
   template<unsigned int N, typename U> friend ADVarS<N,complex<U>> abs(const ADVarS<N,complex<U>>& var);
   template<unsigned int N, typename U> friend ADVarS<N,complex<U>> conj(const ADVarS<N,complex<U>>& var);
+  template<unsigned int N, typename U> friend ADVarS<N,complex<U>> sqrt(const ADVarS<N,complex<U>>& var);
 
 protected:
 
@@ -504,7 +505,7 @@ HOST DEVICE bool operator<=(const ADVarS<N,T>& a, const T& b) { return a.v_ <= b
 template<unsigned int N, typename T>
 HOST DEVICE bool operator<=(const T& a, const ADVarS<N,T>& b) { return a <= b.v_; }
 
-#define ADVAR_FUNC(NAME, VALUE, DERIV) \
+#define ADVARS_FUNC(NAME, VALUE, DERIV) \
 template<unsigned int N, typename T> \
 HOST DEVICE ADVarS<N,T> \
 NAME(const ADVarS<N,T>& var) \
@@ -518,12 +519,12 @@ NAME(const ADVarS<N,T>& var) \
 }
 
 // trigonometric functions
-ADVAR_FUNC( cos, cos(var.v_), -sin(var.v_) )
-ADVAR_FUNC( sin, sin(var.v_),  cos(var.v_) )
-ADVAR_FUNC( tan, tan(var.v_),  T(1)/(cos(var.v_)*cos(var.v_)) )
-ADVAR_FUNC( acos, acos(var.v_), -T(1)/sqrt(1 - var.v_*var.v_) )
-ADVAR_FUNC( asin, asin(var.v_),  T(1)/sqrt(1 - var.v_*var.v_) )
-ADVAR_FUNC( atan, atan(var.v_),  T(1)/(1 + var.v_*var.v_) )
+ADVARS_FUNC( cos, cos(var.v_), -sin(var.v_) )
+ADVARS_FUNC( sin, sin(var.v_),  cos(var.v_) )
+ADVARS_FUNC( tan, tan(var.v_),  T(1)/(cos(var.v_)*cos(var.v_)) )
+ADVARS_FUNC( acos, acos(var.v_), -T(1)/sqrt(1 - var.v_*var.v_) )
+ADVARS_FUNC( asin, asin(var.v_),  T(1)/sqrt(1 - var.v_*var.v_) )
+ADVARS_FUNC( atan, atan(var.v_),  T(1)/(1 + var.v_*var.v_) )
 
 template<unsigned int N, typename T>
 HOST DEVICE ADVarS<N,T>
@@ -538,22 +539,38 @@ atan2(const ADVarS<N,T>& y, const ADVarS<N,T>& x)
 }
 
 // hyperbolic functions
-ADVAR_FUNC( cosh, cosh(var.v_), sinh(var.v_) )
-ADVAR_FUNC( sinh, sinh(var.v_), cosh(var.v_) )
-ADVAR_FUNC( tanh, tanh(var.v_), T(1)/(cosh(var.v_)*cosh(var.v_)) )
+ADVARS_FUNC( cosh, cosh(var.v_), sinh(var.v_) )
+ADVARS_FUNC( sinh, sinh(var.v_), cosh(var.v_) )
+ADVARS_FUNC( tanh, tanh(var.v_), T(1)/(cosh(var.v_)*cosh(var.v_)) )
 
 // exponential and logarithm functions
-ADVAR_FUNC( exp, exp(var.v_), exp(var.v_) )
-ADVAR_FUNC( expm1, expm1(var.v_), exp(var.v_) )
-ADVAR_FUNC( log, log(var.v_), T(1)/var.v_ )
-ADVAR_FUNC( log10, log10(var.v_), T(1)/(var.v_*log(10.)) )
-ADVAR_FUNC( log1p, log1p(var.v_), T(1)/( 1 + var.v_ ) )
+ADVARS_FUNC( exp, exp(var.v_), exp(var.v_) )
+ADVARS_FUNC( expm1, expm1(var.v_), exp(var.v_) )
+ADVARS_FUNC( log, log(var.v_), T(1)/var.v_ )
+ADVARS_FUNC( log10, log10(var.v_), T(1)/(var.v_*log(10.)) )
+ADVARS_FUNC( log1p, log1p(var.v_), T(1)/( 1 + var.v_ ) )
 
 // error functions
-ADVAR_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
-ADVAR_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
+ADVARS_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
+ADVARS_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 
 // power functions
+template<unsigned int N, typename T>
+HOST DEVICE ADVarS<N,T> sqrt(const ADVarS<N,T>& var)
+{
+  T sqrt_val = sqrt(var.v_);
+  if (sqrt_val == 0)
+    return ADVarS<N,T>(0);
+  else
+  {
+    T tmp = 0.5/sqrt_val;
+    ADVarS<N,T> z;
+    z.v_ = sqrt_val;
+    for (unsigned int i = 0; i < N; i++)
+      z.d_[i] = tmp * var.d_[i];
+    return z;
+  }
+}
 
 // abs functions
 template<unsigned int N, typename T>
@@ -562,6 +579,7 @@ HOST DEVICE ADVarS<N,T> abs(const ADVarS<N,T>& var)
   return (var.v_ < 0) ? -var : var;
 }
 
+// complex functions
 template<unsigned int N, typename T>
 HOST DEVICE ADVarS<N,complex<T>> abs(const ADVarS<N,complex<T>>& var)
 {
@@ -588,6 +606,60 @@ HOST DEVICE ADVarS<N,complex<T>> conj(const ADVarS<N,complex<T>>& var)
   return z;
 }
 
+template<unsigned int N, typename T>
+HOST DEVICE ADVarS<N,complex<T>> sqrt(const ADVarS<N,complex<T>>& var)
+{
+  ADVarS<N,complex<T>> z;
+  if (var.v_.real() >= T(0) && var.v_.imag() == T(0))
+  {
+    T sqrt_val = sqrt(var.v_.real());
+    if (sqrt_val == 0)
+    {
+      z.v_ = complex<T>(0, 0);
+      for (unsigned int i = 0; i < N; i++)
+        z.d_[i] = complex<T>(0, 0);
+    }
+    else
+    {
+      T tmp = 0.5/sqrt_val;
+      z.v_ = complex<T>(sqrt_val, 0);
+      for (unsigned int i = 0; i < N; i++)
+        z.d_[i] = complex<T>(tmp * var.d_[i].real(), 0);
+    }
+  }
+  else
+  {
+    printf("Complex sqrt not implemented for ADVarS!\n");
+    exit(1);
+  }
+
+  // T abs_v = abs(var.v_);
+  // T u = sqrt((abs_v + var.v_.real()) / 2);
+  // T v = sqrt((abs_v - var.v_.real()) / 2);
+
+  // if (var.v_.imag() >= 0)
+  // {
+  //   z.v_ = complex<T>(u, v);
+  //   for (unsigned int i = 0; i < N; i++)
+  //   {
+  //     T du = ((var.v_.real() * var.d_[i].real() + var.v_.imag() * var.d_[i].imag()) / abs_v + var.d_[i].real()) / (4*u);
+  //     T dv = ((var.v_.real() * var.d_[i].real() + var.v_.imag() * var.d_[i].imag()) / abs_v - var.d_[i].real()) / (4*v);
+  //     z.d_[i] = complex<T>(du, dv);
+  //   }
+  // }
+  // else
+  // {
+  //   z.v_ = complex<T>(u, -v);
+  //   for (unsigned int i = 0; i < N; i++)
+  //   {
+  //     T du = ((var.v_.real() * var.d_[i].real() + var.v_.imag() * var.d_[i].imag()) / abs_v + var.d_[i].real()) / (4*u);
+  //     T dv = ((var.v_.real() * var.d_[i].real() + var.v_.imag() * var.d_[i].imag()) / abs_v - var.d_[i].real()) / (4*v);
+  //     z.d_[i] = complex<T>(du, -dv);
+  //   }
+  // }
+
+  return z;
+}
 
 // ostream
 template<int N>

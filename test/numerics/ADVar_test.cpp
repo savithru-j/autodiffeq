@@ -396,6 +396,25 @@ TEST( ADVar, ErrorFunc )
 }
 
 //----------------------------------------------------------------------------//
+TEST( ADVar, Power )
+{
+  {
+    ADVar<double> x(0.75, {3, -4});
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value(), std::sqrt(0.75));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0 / (2.0*std::sqrt(0.75)) * 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0 / (2.0*std::sqrt(0.75)) * -4.0);
+  }
+  {
+    ADVar<double> x(0.0, {3, -4});
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 0.0);
+  }
+}
+
+//----------------------------------------------------------------------------//
 TEST( ADVar, Abs )
 {
   {
@@ -463,5 +482,31 @@ TEST( ADVar, Complex )
     EXPECT_DOUBLE_EQ(z.deriv(0).imag(), -1.0);
     EXPECT_DOUBLE_EQ(z.deriv(1).real(), -4.0);
     EXPECT_DOUBLE_EQ(z.deriv(1).imag(), -0.5);
+  }
+}
+
+//----------------------------------------------------------------------------//
+TEST( ADVar, ComplexSqrt )
+{
+  using Complex = complex<double>;
+  {
+    Complex x0(3.0, 0.0);
+    ADVar<Complex> x(x0, {Complex(5.0, 2.0)});
+    
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value().real(), sqrt(3.0));
+    EXPECT_DOUBLE_EQ(z.value().imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 0.5/sqrt(3.0) * 5.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 0.0);
+  }
+  {
+    Complex x0(0.0, 0.0);
+    ADVar<Complex> x(x0, {Complex(5.0, 2.0)});
+    
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value().real(), 0.0);
+    EXPECT_DOUBLE_EQ(z.value().imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 0.0);
   }
 }

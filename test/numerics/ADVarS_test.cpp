@@ -404,6 +404,25 @@ TEST( ADVarS, ErrorFunc )
 }
 
 //----------------------------------------------------------------------------//
+TEST( ADVarS, Power )
+{
+  {
+    ADVarS<2,double> x(0.75, {3, -4});
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value(), std::sqrt(0.75));
+    EXPECT_DOUBLE_EQ(z.deriv(0), 1.0 / (2.0*std::sqrt(0.75)) * 3.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 1.0 / (2.0*std::sqrt(0.75)) * -4.0);
+  }
+  {
+    ADVarS<2,double> x(0.0, {3, -4});
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(1), 0.0);
+  }
+}
+
+//----------------------------------------------------------------------------//
 TEST( ADVarS, Abs )
 {
   {
@@ -472,4 +491,41 @@ TEST( ADVarS, Complex )
     EXPECT_DOUBLE_EQ(z.deriv(1).real(), -4.0);
     EXPECT_DOUBLE_EQ(z.deriv(1).imag(), -0.5);
   }
+}
+
+//----------------------------------------------------------------------------//
+TEST( ADVarS, ComplexSqrt )
+{
+  using Complex = complex<double>;
+  {
+    Complex x0(3.0, 0.0);
+    ADVarS<1,Complex> x(x0, {Complex(5.0, 2.0)});
+    
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value().real(), sqrt(3.0));
+    EXPECT_DOUBLE_EQ(z.value().imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 0.5/sqrt(3.0) * 5.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 0.0);
+  }
+  {
+    Complex x0(0.0, 0.0);
+    ADVarS<1,Complex> x(x0, {Complex(5.0, 2.0)});
+    
+    auto z = sqrt(x);
+    EXPECT_DOUBLE_EQ(z.value().real(), 0.0);
+    EXPECT_DOUBLE_EQ(z.value().imag(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).real(), 0.0);
+    EXPECT_DOUBLE_EQ(z.deriv(0).imag(), 0.0);
+  }
+  // //Finite diff check
+  // Complex eps(1e-5, 0);
+  // auto z0 = sqrt(x0);
+  // Complex xp = x0 + eps;
+  // auto zp = sqrt(xp);
+  // Complex xm = x0 - eps;
+  // auto zm = sqrt(xm);
+  // Complex dz = (zp - zm) / (2.0*eps);
+  // std::cout << "zp: " << zp.real() << ", " << zp.imag() << std::endl;
+  // std::cout << "zm: " << zm.real() << ", " << zm.imag() << std::endl;
+  // std::cout << "dz: " << dz.real() << ", " << dz.imag() << std::endl;
 }

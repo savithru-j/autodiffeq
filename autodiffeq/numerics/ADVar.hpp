@@ -219,6 +219,7 @@ public:
   // complex functions
   template<typename U> friend ADVar<complex<U>> abs(const ADVar<complex<U>>& var);
   template<typename U> friend ADVar<complex<U>> conj(const ADVar<complex<U>>& var);
+  template<typename U> friend ADVar<complex<U>> sqrt(const ADVar<complex<U>>& var);
 
 protected:
 
@@ -725,6 +726,23 @@ ADVAR_FUNC( erf , erf(var.v_) ,  T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 ADVAR_FUNC( erfc, erfc(var.v_), -T(2./sqrt(M_PI))*exp(-(var.v_*var.v_)) )
 
 // power functions
+template<typename T>
+HOST DEVICE ADVar<T> sqrt(const ADVar<T>& var)
+{
+  T sqrt_val = sqrt(var.v_);
+  if (var.N_ == 0)
+    return ADVar<T>(sqrt_val);
+  else if (sqrt_val == 0)
+    return ADVar<T>(0, var.N_);
+  else
+  {
+    T tmp = 0.5/sqrt_val;
+    ADVar<T> z(sqrt_val, var.N_);
+    for (unsigned int i = 0; i < var.N_; i++)
+      z.d_[i] = tmp * var.d_[i];
+    return z;
+  }
+}
 
 // abs functions
 template<typename T>
@@ -757,6 +775,32 @@ HOST DEVICE ADVar<complex<T>> conj(const ADVar<complex<T>>& var)
   return z;
 }
 
+template<typename T>
+HOST DEVICE ADVar<complex<T>> sqrt(const ADVar<complex<T>>& var)
+{
+  ADVar<complex<T>> z(complex<T>(0, 0), var.N_);
+  if (var.v_.real() >= T(0) && var.v_.imag() == T(0))
+  {
+    T sqrt_val = sqrt(var.v_.real());
+    if (sqrt_val == 0)
+    {
+      //Nothing to do, already initialized to zeros.
+    }
+    else
+    {
+      T tmp = 0.5/sqrt_val;
+      z.v_ = complex<T>(sqrt_val, 0);
+      for (unsigned int i = 0; i < var.N_; i++)
+        z.d_[i] = complex<T>(tmp * var.d_[i].real(), 0);
+    }
+  }
+  else
+  {
+    printf("Complex sqrt not implemented for ADVar!\n");
+    exit(1);
+  }
+  return z;
+}
 
 // ostream
 inline std::ostream& operator<<(std::ostream& os, const ADVar<double>& var)
